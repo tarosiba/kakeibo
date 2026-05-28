@@ -11,6 +11,7 @@ offset_top = -12.0
 offset_right = 16.0
 offset_bottom = 12.0
 color = Color(0.82, 0.82, 0.82, 1)
+mouse_filter = 2
 
 [node name="StrengthLabel" type="Label" parent="."]
 offset_left = -8.0
@@ -18,3 +19,4 @@ offset_top = -10.0
 offset_right = 12.0
 offset_bottom = 10.0
 text = "10"
+mouse_filter = 2
