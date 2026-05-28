@@ -12,7 +12,7 @@ static func load_json(path: String) -> Dictionary:
 		return {}
 
 	var raw := file.get_as_text()
-	var parsed := JSON.parse_string(raw)
+	var parsed: Variant = JSON.parse_string(raw)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_error("Scenario JSON is not a dictionary: %s" % path)
 		return {}
