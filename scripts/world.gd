@@ -38,19 +38,33 @@ func _on_done_turn_pressed() -> void:
 	_reset_ap_for_current_side()
 	_update_turn_label()
 
-func _turn_order() -> Array:
-	return scenario_data.get("turn_order", ["GER", "POL"])
+func _turn_order() -> Array[String]:
+	var raw_order: Variant = scenario_data.get("turn_order", ["GER", "POL"])
+	if typeof(raw_order) != TYPE_ARRAY:
+		return ["GER", "POL"]
+	var order: Array[String] = []
+	for entry in raw_order:
+		order.append(str(entry))
+	if order.is_empty():
+		return ["GER", "POL"]
+	return order
 
 func _current_side() -> String:
-	var order: Array = _turn_order()
+	var order: Array[String] = _turn_order()
 	return order[turn_index]
 
 func _update_turn_label() -> void:
 	top_bar.text = "Turn %d - %s | Units: %d" % [turn_number, _current_side(), units_by_id.size()]
 
 func _spawn_tiles_from_scenario() -> void:
-	var map_data: Dictionary = scenario_data.get("map", {})
-	var tiles: Array = map_data.get("tiles", [])
+	var map_variant: Variant = scenario_data.get("map", {})
+	if typeof(map_variant) != TYPE_DICTIONARY:
+		return
+	var map_data: Dictionary = map_variant
+	var tiles_variant: Variant = map_data.get("tiles", [])
+	if typeof(tiles_variant) != TYPE_ARRAY:
+		return
+	var tiles: Array = tiles_variant
 	for tile_data_variant in tiles:
 		if typeof(tile_data_variant) != TYPE_DICTIONARY:
 			continue
@@ -60,12 +74,17 @@ func _spawn_tiles_from_scenario() -> void:
 		var r := int(tile_data.get("r", 0))
 		var terrain := str(tile_data.get("terrain", "sea"))
 		tile_instance.position = _hex_to_world(q, r)
-		var background: ColorRect = tile_instance.get_node("Background")
+		var background: ColorRect = tile_instance.get_node("Background") as ColorRect
+		if background == null:
+			continue
 		background.color = terrain_colors.get(terrain, terrain_colors["sea"])
 		map_layer.add_child(tile_instance)
 
 func _spawn_units_from_scenario() -> void:
-	var units: Array = scenario_data.get("units", [])
+	var units_variant: Variant = scenario_data.get("units", [])
+	if typeof(units_variant) != TYPE_ARRAY:
+		return
+	var units: Array = units_variant
 	for unit_data_variant in units:
 		if typeof(unit_data_variant) != TYPE_DICTIONARY:
 			continue
