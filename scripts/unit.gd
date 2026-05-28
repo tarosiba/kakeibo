@@ -11,6 +11,7 @@ extends Node2D
 
 @onready var strength_label: Label = $StrengthLabel
 @onready var body: ColorRect = $Body
+var base_color: Color = Color(0.82, 0.82, 0.82, 1)
 
 func _ready() -> void:
 	_apply_country_color()
@@ -38,8 +39,17 @@ func _refresh_ui() -> void:
 
 func _apply_country_color() -> void:
 	if country == "GER":
-		body.color = Color(0.9, 0.3, 0.3, 1)
+		base_color = Color(0.9, 0.3, 0.3, 1)
 	elif country == "POL":
-		body.color = Color(0.95, 0.95, 0.95, 1)
+		base_color = Color(0.95, 0.95, 0.95, 1)
 	else:
-		body.color = Color(0.82, 0.82, 0.82, 1)
+		base_color = Color(0.82, 0.82, 0.82, 1)
+	body.color = base_color
+
+func set_selected(is_selected: bool) -> void:
+	if is_selected:
+		body.color = base_color.lightened(0.25)
+		scale = Vector2(1.15, 1.15)
+	else:
+		body.color = base_color
+		scale = Vector2.ONE

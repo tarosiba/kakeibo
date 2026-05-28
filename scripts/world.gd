@@ -14,6 +14,8 @@ var scenario_data: Dictionary = {}
 var turn_index: int = 0
 var turn_number: int = 1
 var units_by_id: Dictionary = {}
+var playable_tiles: Dictionary = {}
+var selected_unit: Variant = null
 var terrain_colors := {
 	"clear": Color(0.78, 0.74, 0.58, 1),
 	"forest": Color(0.39, 0.60, 0.35, 1),
@@ -31,10 +33,19 @@ func _ready() -> void:
 	_reset_ap_for_current_side()
 	_update_turn_label()
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton):
+		return
+	var mouse_event: InputEventMouseButton = event
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
+		return
+	_handle_click(mouse_event.position)
+
 func _on_done_turn_pressed() -> void:
 	turn_index = (turn_index + 1) % _turn_order().size()
 	if turn_index == 0:
 		turn_number += 1
+	_set_selected_unit(null)
 	_reset_ap_for_current_side()
 	_update_turn_label()
 
@@ -73,6 +84,7 @@ func _spawn_tiles_from_scenario() -> void:
 		var q := int(tile_data.get("q", 0))
 		var r := int(tile_data.get("r", 0))
 		var terrain := str(tile_data.get("terrain", "sea"))
+		playable_tiles[_hex_key(q, r)] = true
 		tile_instance.position = _hex_to_world(q, r)
 		var background: ColorRect = tile_instance.get_node("Background") as ColorRect
 		if background == null:
@@ -113,6 +125,59 @@ func _spawn_units_from_scenario() -> void:
 
 func _hex_to_world(q: int, r: int) -> Vector2:
 	return MAP_ORIGIN + HexGrid.axial_to_world(q, r)
+
+func _world_to_hex(world_pos: Vector2) -> Vector2i:
+	var local_pos := world_pos - MAP_ORIGIN
+	return HexGrid.world_to_axial(local_pos)
+
+func _handle_click(world_pos: Vector2) -> void:
+	var hex: Vector2i = _world_to_hex(world_pos)
+	if not _has_tile(hex):
+		_set_selected_unit(null)
+		return
+
+	var clicked_unit: Variant = _unit_at_hex(hex)
+	if clicked_unit != null:
+		if clicked_unit.country == _current_side():
+			_set_selected_unit(clicked_unit)
+		return
+
+	if selected_unit == null:
+		return
+	if selected_unit.country != _current_side():
+		return
+	if not _is_adjacent(selected_unit, hex):
+		return
+	if _unit_at_hex(hex) != null:
+		return
+	if not selected_unit.spend_ap(1):
+		return
+	selected_unit.set_axial_position(hex.x, hex.y)
+	selected_unit.position = _hex_to_world(hex.x, hex.y)
+	_update_turn_label()
+
+func _unit_at_hex(hex: Vector2i) -> Variant:
+	for unit_node in units_by_id.values():
+		if unit_node.q == hex.x and unit_node.r == hex.y:
+			return unit_node
+	return null
+
+func _is_adjacent(unit_node: Variant, target_hex: Vector2i) -> bool:
+	var neighbors: Array[Vector2i] = HexGrid.neighbors(unit_node.q, unit_node.r)
+	return neighbors.has(target_hex)
+
+func _has_tile(hex: Vector2i) -> bool:
+	return playable_tiles.has(_hex_key(hex.x, hex.y))
+
+func _hex_key(q: int, r: int) -> String:
+	return "%d,%d" % [q, r]
+
+func _set_selected_unit(unit_node: Variant) -> void:
+	if selected_unit != null:
+		selected_unit.set_selected(false)
+	selected_unit = unit_node
+	if selected_unit != null:
+		selected_unit.set_selected(true)
 
 func _reset_ap_for_current_side() -> void:
 	var side := _current_side()
