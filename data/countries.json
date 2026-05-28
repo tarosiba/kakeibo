@@ -1,0 +1,12 @@
+{
+  "GER": {
+    "name": "Germany",
+    "side": "axis",
+    "flag": "res://assets/flags/ger.png"
+  },
+  "POL": {
+    "name": "Poland",
+    "side": "allied",
+    "flag": "res://assets/flags/pol.png"
+  }
+}

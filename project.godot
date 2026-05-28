@@ -1,0 +1,12 @@
+; Engine configuration file.
+; Minimal scaffold for Godot 4 project.
+
+config_version=5
+
+[application]
+config/name="SC1939 Prototype"
+run/main_scene="res://scenes/World.tscn"
+config/features=PackedStringArray("4.2")
+
+[rendering]
+renderer/rendering_method="mobile"

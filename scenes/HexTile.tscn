@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[node name="HexTile" type="Node2D"]
+
+[node name="Background" type="ColorRect" parent="."]
+offset_left = -24.0
+offset_top = -20.0
+offset_right = 24.0
+offset_bottom = 20.0
+color = Color(0.27, 0.49, 0.71, 1)

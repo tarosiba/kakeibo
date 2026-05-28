@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/world.gd" id="1_world"]
+
+[node name="World" type="Node2D"]
+script = ExtResource("1_world")
+
+[node name="MapLayer" type="Node2D" parent="."]
+
+[node name="UnitLayer" type="Node2D" parent="."]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="TopBar" type="Label" parent="CanvasLayer"]
+offset_left = 12.0
+offset_top = 8.0
+offset_right = 380.0
+offset_bottom = 34.0
+text = "SC1939 Prototype"
+
+[node name="DoneButton" type="Button" parent="CanvasLayer"]
+offset_left = 12.0
+offset_top = 44.0
+offset_right = 140.0
+offset_bottom = 78.0
+text = "Done Turn"

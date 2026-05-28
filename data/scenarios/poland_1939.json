@@ -1,0 +1,62 @@
+{
+  "name": "Poland 1939",
+  "date": "1939-09-01",
+  "map": {
+    "width": 20,
+    "height": 14,
+    "tiles": [
+      { "q": 8, "r": 6, "terrain": "clear", "owner": "GER" },
+      { "q": 9, "r": 6, "terrain": "clear", "owner": "GER" },
+      { "q": 10, "r": 6, "terrain": "city", "city_name": "Warsaw", "owner": "POL" },
+      { "q": 11, "r": 6, "terrain": "clear", "owner": "POL" },
+      { "q": 10, "r": 7, "terrain": "river", "owner": "POL" },
+      { "q": 9, "r": 7, "terrain": "forest", "owner": "POL" }
+    ]
+  },
+  "countries": ["GER", "POL"],
+  "turn_order": ["GER", "POL"],
+  "units": [
+    {
+      "id": "ger_1",
+      "country": "GER",
+      "type": "infantry",
+      "q": 8,
+      "r": 6,
+      "strength": 10,
+      "ap": 2
+    },
+    {
+      "id": "ger_2",
+      "country": "GER",
+      "type": "armor",
+      "q": 9,
+      "r": 6,
+      "strength": 10,
+      "ap": 3
+    },
+    {
+      "id": "pol_1",
+      "country": "POL",
+      "type": "infantry",
+      "q": 10,
+      "r": 6,
+      "strength": 10,
+      "ap": 2
+    },
+    {
+      "id": "pol_2",
+      "country": "POL",
+      "type": "infantry",
+      "q": 11,
+      "r": 6,
+      "strength": 8,
+      "ap": 2
+    }
+  ],
+  "victory": {
+    "type": "capture_city",
+    "attacker": "GER",
+    "target_city": "Warsaw",
+    "max_turns": 10
+  }
+}

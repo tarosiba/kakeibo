@@ -1,0 +1,8 @@
+{
+  "clear": { "move_cost": 1, "defense_bonus": 0 },
+  "forest": { "move_cost": 2, "defense_bonus": 1 },
+  "mountain": { "move_cost": 3, "defense_bonus": 2 },
+  "city": { "move_cost": 1, "defense_bonus": 1 },
+  "river": { "move_cost": 2, "defense_bonus": 1 },
+  "sea": { "move_cost": 99, "defense_bonus": 0 }
+}

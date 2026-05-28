@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[node name="CombatPopup" type="Window"]
+title = "Combat Result"
+size = Vector2i(360, 180)
+
+[node name="ResultLabel" type="Label" parent="."]
+offset_left = 20.0
+offset_top = 28.0
+offset_right = 330.0
+offset_bottom = 108.0
+text = "Attacker dealt X, Defender dealt Y"

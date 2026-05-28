@@ -1,0 +1,16 @@
+{
+  "infantry": {
+    "max_strength": 10,
+    "move": 2,
+    "attack": 3,
+    "defense": 3,
+    "cost": 80
+  },
+  "armor": {
+    "max_strength": 10,
+    "move": 3,
+    "attack": 4,
+    "defense": 2,
+    "cost": 120
+  }
+}
