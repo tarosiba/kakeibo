@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#1a5fb4" />
+  <title>予定カレンダー</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <button type="button" class="nav-btn" id="prevMonth" aria-label="前の月">‹</button>
+      <h1 class="month-title" id="monthTitle"></h1>
+      <button type="button" class="nav-btn" id="nextMonth" aria-label="次の月">›</button>
+    </header>
+
+    <div class="weekdays" aria-hidden="true">
+      <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+    </div>
+
+    <div class="grid" id="calendarGrid" role="grid" aria-label="月間カレンダー"></div>
+
+    <section class="day-panel" id="dayPanel" hidden>
+      <div class="day-panel-head">
+        <h2 id="selectedDateLabel"></h2>
+        <button type="button" class="text-btn" id="closePanel">閉じる</button>
+      </div>
+      <ul class="event-list" id="eventList"></ul>
+      <form class="event-form" id="eventForm">
+        <label class="field">
+          <span>予定</span>
+          <input type="text" id="eventTitle" placeholder="例：病院、会議" required maxlength="80" />
+        </label>
+        <label class="field">
+          <span>色</span>
+          <div class="color-row" id="colorPicker"></div>
+        </label>
+        <button type="submit" class="primary-btn">追加</button>
+      </form>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
