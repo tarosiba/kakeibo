@@ -34,6 +34,12 @@ Create a small, playable prototype inspired by Strategic Command:
 - `countries.json`: country metadata
 - `scenarios/poland_1939.json`: initial map, units, turn order, victory
 
+## Map System (v1)
+- `map_builder.gd` builds a full hex grid from `width`/`height`, `default_terrain`, `regions`, and `features`
+- `map_manager.gd` spawns hex tiles, handles hover/move/select highlights, and terrain passability
+- `camera_controller.gd` supports right-drag pan and mouse wheel zoom
+- `hex_tile.gd` draws pointy-top hex polygons with terrain color, owner tint, and city labels
+
 ## Coordinate Model
 Use axial hex coordinates:
 - `q`: column
