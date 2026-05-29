@@ -1,11 +1,18 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/world.gd" id="1_world"]
+[ext_resource type="Script" path="res://scripts/camera_controller.gd" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/map_manager.gd" id="3_map"]
 
 [node name="World" type="Node2D"]
 script = ExtResource("1_world")
 
-[node name="MapLayer" type="Node2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(560, 360)
+script = ExtResource("2_camera")
+
+[node name="MapManager" type="Node2D" parent="."]
+script = ExtResource("3_map")
 
 [node name="UnitLayer" type="Node2D" parent="."]
 
@@ -14,13 +21,29 @@ script = ExtResource("1_world")
 [node name="TopBar" type="Label" parent="CanvasLayer"]
 offset_left = 12.0
 offset_top = 8.0
-offset_right = 380.0
+offset_right = 520.0
 offset_bottom = 34.0
 text = "SC1939 Prototype"
 
+[node name="MapInfo" type="Label" parent="CanvasLayer"]
+offset_left = 12.0
+offset_top = 36.0
+offset_right = 700.0
+offset_bottom = 58.0
+theme_override_font_sizes/font_size = 12
+text = "Map: Poland 1939"
+
+[node name="HelpLabel" type="Label" parent="CanvasLayer"]
+offset_left = 12.0
+offset_top = 60.0
+offset_right = 700.0
+offset_bottom = 82.0
+theme_override_font_sizes/font_size = 11
+text = "Left click: select/move | Right drag: pan | Wheel: zoom"
+
 [node name="DoneButton" type="Button" parent="CanvasLayer"]
 offset_left = 12.0
-offset_top = 44.0
+offset_top = 88.0
 offset_right = 140.0
-offset_bottom = 78.0
+offset_bottom = 122.0
 text = "Done Turn"

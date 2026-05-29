@@ -4,7 +4,7 @@
 config_version=5
 
 [application]
-config/name="SC1939 Prototype"
+config/name="戦略ゲーム作成（Poland 1939）"
 run/main_scene="res://scenes/World.tscn"
 config/features=PackedStringArray("4.2")
 

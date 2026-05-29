@@ -4,13 +4,29 @@
   "map": {
     "width": 20,
     "height": 14,
-    "tiles": [
-      { "q": 8, "r": 6, "terrain": "clear", "owner": "GER" },
-      { "q": 9, "r": 6, "terrain": "clear", "owner": "GER" },
+    "default_terrain": "sea",
+    "regions": [
+      { "q1": 5, "r1": 3, "q2": 16, "r2": 3, "terrain": "clear", "owner": "POL" },
+      { "q1": 7, "r1": 4, "q2": 15, "r2": 10, "terrain": "clear", "owner": "POL" },
+      { "q1": 3, "r1": 5, "q2": 6, "r2": 9, "terrain": "clear", "owner": "GER" },
+      { "q1": 10, "r1": 2, "q2": 13, "r2": 4, "terrain": "clear", "owner": "GER" },
+      { "q1": 4, "r1": 5, "q2": 6, "r2": 8, "terrain": "forest", "owner": "GER" },
+      { "q1": 9, "r1": 5, "q2": 13, "r2": 9, "terrain": "forest", "owner": "POL" },
+      { "q1": 7, "r1": 11, "q2": 14, "r2": 13, "terrain": "mountain", "owner": "POL" },
+      { "q1": 15, "r1": 8, "q2": 19, "r2": 13, "terrain": "mountain", "owner": "POL" }
+    ],
+    "features": [
+      { "q": 10, "r": 3, "terrain": "city", "city_name": "Danzig", "owner": "POL" },
       { "q": 10, "r": 6, "terrain": "city", "city_name": "Warsaw", "owner": "POL" },
-      { "q": 11, "r": 6, "terrain": "clear", "owner": "POL" },
-      { "q": 10, "r": 7, "terrain": "river", "owner": "POL" },
-      { "q": 9, "r": 7, "terrain": "forest", "owner": "POL" }
+      { "q": 9, "r": 7, "terrain": "city", "city_name": "Lodz", "owner": "POL" },
+      { "q": 10, "r": 9, "terrain": "city", "city_name": "Krakow", "owner": "POL" },
+      { "q": 5, "r": 7, "terrain": "city", "city_name": "Breslau", "owner": "GER" },
+      { "q": 12, "r": 3, "terrain": "city", "city_name": "Konigsberg", "owner": "GER" },
+      { "q": 6, "r": 6, "terrain": "river", "owner": "GER" },
+      { "q": 7, "r": 6, "terrain": "river", "owner": "POL" },
+      { "q": 9, "r": 6, "terrain": "river", "owner": "POL" },
+      { "q": 8, "r": 8, "terrain": "river", "owner": "POL" },
+      { "q": 11, "r": 5, "terrain": "river", "owner": "POL" }
     ]
   },
   "countries": ["GER", "POL"],
@@ -20,7 +36,7 @@
       "id": "ger_1",
       "country": "GER",
       "type": "infantry",
-      "q": 8,
+      "q": 6,
       "r": 6,
       "strength": 10,
       "ap": 2
@@ -29,10 +45,19 @@
       "id": "ger_2",
       "country": "GER",
       "type": "armor",
-      "q": 9,
+      "q": 5,
       "r": 6,
       "strength": 10,
       "ap": 3
+    },
+    {
+      "id": "ger_3",
+      "country": "GER",
+      "type": "infantry",
+      "q": 6,
+      "r": 5,
+      "strength": 10,
+      "ap": 2
     },
     {
       "id": "pol_1",
@@ -50,6 +75,15 @@
       "q": 11,
       "r": 6,
       "strength": 8,
+      "ap": 2
+    },
+    {
+      "id": "pol_3",
+      "country": "POL",
+      "type": "infantry",
+      "q": 10,
+      "r": 7,
+      "strength": 9,
       "ap": 2
     }
   ],

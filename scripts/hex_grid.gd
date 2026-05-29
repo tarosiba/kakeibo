@@ -23,6 +23,26 @@ static func neighbors(q: int, r: int) -> Array[Vector2i]:
 		Vector2i(q - 1, r + 1)
 	]
 
+
+static func hex_corners() -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	for i in range(6):
+		var angle_rad: float = deg_to_rad(60.0 * float(i) - 30.0)
+		points.append(
+			Vector2(cos(angle_rad), sin(angle_rad)) * HEX_SIZE
+		)
+	return points
+
+
+static func distance(a: Vector2i, b: Vector2i) -> int:
+	var aq: int = a.x
+	var ar: int = a.y
+	var bq: int = b.x
+	var br: int = b.y
+	return int(
+		(abs(aq - bq) + abs(aq + ar - bq - br) + abs(ar - br)) / 2
+	)
+
 static func _round_axial(q: float, r: float) -> Vector2i:
 	var x: float = q
 	var z: float = r
