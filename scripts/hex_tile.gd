@@ -19,6 +19,7 @@ var _select: bool = false
 
 
 func setup(tile_data: Dictionary, terrain_colors: Dictionary, owner_tints: Dictionary) -> void:
+	_ensure_nodes()
 	axial_q = int(tile_data.get("q", 0))
 	axial_r = int(tile_data.get("r", 0))
 	terrain_id = str(tile_data.get("terrain", "clear"))
@@ -26,6 +27,9 @@ func setup(tile_data: Dictionary, terrain_colors: Dictionary, owner_tints: Dicti
 	city_name = str(tile_data.get("city_name", ""))
 
 	var corners: PackedVector2Array = HexGrid.hex_corners()
+	if fill == null or border == null:
+		push_error("HexTile missing Fill or Border node")
+		return
 	fill.polygon = corners
 	border.points = corners
 
@@ -61,7 +65,19 @@ func set_highlight(mode: String, enabled: bool = true) -> void:
 	_apply_visual()
 
 
+func _ensure_nodes() -> void:
+	if fill == null:
+		fill = get_node_or_null("Fill") as Polygon2D
+	if border == null:
+		border = get_node_or_null("Border") as Line2D
+	if city_label == null:
+		city_label = get_node_or_null("CityLabel") as Label
+
+
 func _apply_visual() -> void:
+	_ensure_nodes()
+	if fill == null or border == null:
+		return
 	if _select:
 		fill.color = _base_fill.lightened(0.08)
 		border.default_color = Color(0.95, 0.95, 0.95, 1.0)

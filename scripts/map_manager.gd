@@ -50,9 +50,9 @@ func _spawn_tiles() -> void:
 		var q: int = int(tile_data.get("q", 0))
 		var r: int = int(tile_data.get("r", 0))
 		node.position = map_origin + HexGrid.axial_to_world(q, r)
+		add_child(node)
 		if node.has_method("setup"):
 			node.call("setup", tile_data, terrain_colors, owner_tints)
-		add_child(node)
 		tile_nodes_by_key[key] = node
 
 
