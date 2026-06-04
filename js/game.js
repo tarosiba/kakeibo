@@ -8,23 +8,16 @@ const AUTOSAVE_SLOT = "autosave";
 const MANUAL_SLOTS = ["slot1", "slot2", "slot3"];
 
 const COUNTRIES = [
-  { id: "japan", name: "日本", flag: "🇯🇵", gdp: 4200, treasury: 800, stability: 72, industry: 85, welfare: 78, map: { x: 286, y: 42 } },
-  { id: "usa", name: "アメリカ", flag: "🇺🇸", gdp: 28000, treasury: 1200, stability: 65, industry: 90, welfare: 60, map: { x: 72, y: 48 } },
-  { id: "brazil", name: "ブラジル", flag: "🇧🇷", gdp: 2200, treasury: 350, stability: 55, industry: 55, welfare: 48, map: { x: 108, y: 108 } },
-  { id: "nigeria", name: "ナイジェリア", flag: "🇳🇬", gdp: 480, treasury: 120, stability: 48, industry: 35, welfare: 35, map: { x: 168, y: 88 } },
+  { id: "japan", name: "日本", flag: "🇯🇵", gdp: 4200, treasury: 800, stability: 72, industry: 85, welfare: 78, map: { x: 304, y: 50 } },
+  { id: "usa", name: "アメリカ", flag: "🇺🇸", gdp: 28000, treasury: 1200, stability: 65, industry: 90, welfare: 60, map: { x: 82, y: 50 } },
+  { id: "brazil", name: "ブラジル", flag: "🇧🇷", gdp: 2200, treasury: 350, stability: 55, industry: 55, welfare: 48, map: { x: 100, y: 118 } },
+  { id: "nigeria", name: "ナイジェリア", flag: "🇳🇬", gdp: 480, treasury: 120, stability: 48, industry: 35, welfare: 35, map: { x: 188, y: 80 } },
 ];
 
 const AI_NATIONS = [
-  { id: "china", name: "中国", flag: "🇨🇳", map: { x: 252, y: 52 } },
-  { id: "eu", name: "EU", flag: "🇪🇺", map: { x: 178, y: 38 } },
-  { id: "india", name: "インド", flag: "🇮🇳", map: { x: 228, y: 72 } },
-];
-
-const CONTINENTS = [
-  "M 25,55 L 35,35 L 55,28 L 75,32 L 88,42 L 95,58 L 88,78 L 72,95 L 55,108 L 38,102 L 28,88 L 22,72 Z",
-  "M 108,28 L 125,22 L 148,25 L 168,32 L 185,42 L 195,55 L 198,72 L 192,88 L 178,98 L 158,102 L 138,98 L 122,88 L 112,72 L 108,52 Z",
-  "M 168,88 L 185,82 L 205,85 L 218,95 L 222,108 L 215,118 L 198,122 L 178,118 L 168,108 Z",
-  "M 252,108 L 268,102 L 285,108 L 292,118 L 285,128 L 268,132 L 252,125 Z",
+  { id: "china", name: "中国", flag: "🇨🇳", map: { x: 268, y: 52 } },
+  { id: "eu", name: "EU", flag: "🇪🇺", map: { x: 188, y: 42 } },
+  { id: "india", name: "インド", flag: "🇮🇳", map: { x: 238, y: 68 } },
 ];
 
 const MAX_TURNS = 20;
@@ -136,12 +129,42 @@ function isAiNation(id) {
   return AI_NATIONS.some((n) => n.id === id);
 }
 
+function renderMapGrid() {
+  let g = "";
+  const step = WORLD_MAP.gridStep;
+  for (let x = 0; x <= 360; x += step) {
+    g += `<line class="grid-line" x1="${x}" y1="0" x2="${x}" y2="180" />`;
+  }
+  for (let y = 0; y <= 180; y += step) {
+    g += `<line class="grid-line" x1="0" y1="${y}" x2="360" y2="${y}" />`;
+  }
+  return g;
+}
+
 function renderWorldMap() {
   const svg = document.getElementById("world-map");
   const p = state.player;
-  let html = `<rect class="ocean" width="360" height="180" />`;
-  CONTINENTS.forEach((d) => {
-    html += `<path class="continent" d="${d}" />`;
+  let html = `
+    <defs>
+      <linearGradient id="oceanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#3d7ab8"/>
+        <stop offset="100%" stop-color="#2a5f8f"/>
+      </linearGradient>
+      <linearGradient id="landGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#e8dcc8"/>
+        <stop offset="100%" stop-color="#c9b896"/>
+      </linearGradient>
+    </defs>
+    <rect class="ocean" width="360" height="180" fill="url(#oceanGrad)" />
+    ${renderMapGrid()}
+  `;
+
+  WORLD_MAP.land.forEach((land) => {
+    html += `<path class="land" data-land="${land.id}" d="${land.d}" />`;
+  });
+
+  WORLD_MAP.oceans.forEach((o) => {
+    html += `<text class="ocean-label" x="${o.x}" y="${o.y}">${o.name}</text>`;
   });
 
   AI_NATIONS.forEach((n) => {
@@ -154,15 +177,16 @@ function renderWorldMap() {
     if (!n.map) return;
     const isPlayer = isPlayerNation(n.id);
     const isAi = isAiNation(n.id);
-    let fill = "#5a6a7a";
-    if (isPlayer) fill = "#ffd54f";
+    let fill = "#6b7a8f";
+    if (isPlayer) fill = "#e6b422";
     else if (isAi) fill = relationColor(state.relations[n.id]);
     const selected = selectedMapNation === n.id ? " selected" : "";
     const playerClass = isPlayer ? " player" : "";
     html += `
       <g class="nation-marker${playerClass}${selected}" data-nation="${n.id}" transform="translate(${n.map.x},${n.map.y})">
-        <circle r="6" fill="${fill}" stroke="#1a2332" stroke-width="1.5" />
-        <text class="nation-label" y="14">${n.flag}</text>
+        <circle class="marker-dot" r="5" fill="${fill}" />
+        <text class="nation-flag" y="4" text-anchor="middle">${n.flag}</text>
+        <text class="nation-name" y="16" text-anchor="middle">${n.name}</text>
       </g>`;
   });
 
