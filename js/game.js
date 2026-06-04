@@ -23,8 +23,47 @@ const AI_NATIONS = [
 const MAX_TURNS = 20;
 const COST = { industry: 50, welfare: 40, infra: 35, diplomacy: 25 };
 
+/** 日米など、プレイ可能国同士の主要貿易ペア */
+const MAJOR_TRADE_PAIRS = [
+  ["japan", "usa"],
+  ["usa", "japan"],
+];
+
 let state = null;
 let selectedMapNation = null;
+
+function isPlayableCountry(id) {
+  return COUNTRIES.some((c) => c.id === id);
+}
+
+function isUsJapanPair(playerId, otherId) {
+  return (
+    (playerId === "japan" && otherId === "usa") ||
+    (playerId === "usa" && otherId === "japan")
+  );
+}
+
+/** 貿易・外交の相手（AI + 自国以外のプレイ可能国） */
+function tradePartners(playerId) {
+  const pid = playerId || state?.player?.id;
+  if (!pid) return [...AI_NATIONS];
+  return [
+    ...AI_NATIONS,
+    ...COUNTRIES.filter((c) => c.id !== pid),
+  ];
+}
+
+function defaultRelation(playerId, otherId) {
+  if (isUsJapanPair(playerId, otherId)) return 55;
+  if (isPlayableCountry(otherId)) return randInt(35, 50);
+  return randInt(20, 50);
+}
+
+function exportBonusPerPartner(partnerId) {
+  const base = 15 + Math.floor(state.player.industry / 10);
+  if (isUsJapanPair(state.player.id, partnerId)) return base + 12;
+  return base;
+}
 
 function init() {
   renderCountrySelect();
@@ -78,22 +117,48 @@ function startGame(countryId) {
 }
 
 function createInitialState(base) {
+  const partners = tradePartners(base.id);
+  const relations = {};
+  const tradeDeals = {};
+  partners.forEach((n) => {
+    relations[n.id] = defaultRelation(base.id, n.id);
+    tradeDeals[n.id] = false;
+  });
+
   const s = {
     player: { ...base },
     turn: 1,
     year: 2026,
     quarter: 1,
     taxRate: 20,
-    tradeDeals: {},
-    relations: Object.fromEntries(AI_NATIONS.map((n) => [n.id, randInt(20, 50)])),
+    tradeDeals,
+    relations,
     exports: 0,
     log: [],
     savedAt: null,
   };
-  AI_NATIONS.forEach((n) => {
-    s.tradeDeals[n.id] = false;
-  });
+
+  if (isUsJapanPair(base.id, "usa") || isUsJapanPair(base.id, "japan")) {
+    s.log.push({
+      turn: 1,
+      year: 2026,
+      q: 1,
+      msg: "日米は伝統的な貿易相手です。国際貿易パネルから協定を結べます。",
+    });
+  }
+
   return s;
+}
+
+function ensureTradeState() {
+  tradePartners().forEach((n) => {
+    if (state.relations[n.id] === undefined) {
+      state.relations[n.id] = defaultRelation(state.player.id, n.id);
+    }
+    if (state.tradeDeals[n.id] === undefined) {
+      state.tradeDeals[n.id] = false;
+    }
+  });
 }
 
 function randInt(min, max) {
@@ -127,6 +192,14 @@ function isPlayerNation(id) {
 
 function isAiNation(id) {
   return AI_NATIONS.some((n) => n.id === id);
+}
+
+function isTradePartner(id) {
+  return tradePartners().some((n) => n.id === id);
+}
+
+function isOtherPlayable(id) {
+  return isPlayableCountry(id) && !isPlayerNation(id);
 }
 
 function renderMapGrid() {
@@ -167,19 +240,21 @@ function renderWorldMap() {
     html += `<text class="ocean-label" x="${o.x}" y="${o.y}">${o.name}</text>`;
   });
 
-  AI_NATIONS.forEach((n) => {
-    if (state.tradeDeals[n.id]) {
-      html += `<line class="trade-line" x1="${p.map.x}" y1="${p.map.y}" x2="${n.map.x}" y2="${n.map.y}" />`;
+  tradePartners().forEach((n) => {
+    if (state.tradeDeals[n.id] && n.map) {
+      const pacific = isUsJapanPair(p.id, n.id) ? " trade-line-pacific" : "";
+      html += `<line class="trade-line${pacific}" x1="${p.map.x}" y1="${p.map.y}" x2="${n.map.x}" y2="${n.map.y}" />`;
     }
   });
 
   allNations().forEach((n) => {
     if (!n.map) return;
     const isPlayer = isPlayerNation(n.id);
-    const isAi = isAiNation(n.id);
+    const isPartner = isTradePartner(n.id);
     let fill = "#6b7a8f";
     if (isPlayer) fill = "#e6b422";
-    else if (isAi) fill = relationColor(state.relations[n.id]);
+    else if (isPartner) fill = relationColor(state.relations[n.id]);
+    else if (isOtherPlayable(n.id)) fill = "#7a8a9a";
     const selected = selectedMapNation === n.id ? " selected" : "";
     const playerClass = isPlayer ? " player" : "";
     html += `
@@ -206,12 +281,13 @@ function showMapTooltip(nationId) {
   const el = document.getElementById("map-tooltip");
   if (isPlayerNation(nationId)) {
     el.textContent = `${n.flag} ${n.name}（自国）`;
-  } else if (isAiNation(nationId)) {
+  } else if (isTradePartner(nationId)) {
     const rel = state.relations[nationId];
     const deal = state.tradeDeals[nationId] ? " · 貿易協定あり" : "";
-    el.textContent = `${n.flag} ${n.name} · 関係 ${rel}${deal}`;
+    const tag = isUsJapanPair(state.player.id, nationId) ? " · 日米" : "";
+    el.textContent = `${n.flag} ${n.name} · 関係 ${rel}${deal}${tag}`;
   } else {
-    el.textContent = `${n.flag} ${n.name}（他プレイ可能国）`;
+    el.textContent = `${n.flag} ${n.name}`;
   }
   el.classList.remove("hidden");
 }
@@ -237,13 +313,16 @@ function renderMapDetail() {
     el.innerHTML = `<strong>${n.flag} ${n.name}</strong>（自国）— GDP ${formatNum(p.gdp)}ドル、国庫 ${formatNum(p.treasury)}、安定 ${p.stability}%`;
     return;
   }
-  if (isAiNation(selectedMapNation)) {
+  if (isTradePartner(selectedMapNation)) {
     const rel = state.relations[selectedMapNation];
     const deal = state.tradeDeals[selectedMapNation];
-    el.innerHTML = `<strong>${n.flag} ${n.name}</strong> — 外交関係 ${rel}${deal ? "、<span style='color:var(--good)'>貿易協定締結中</span>" : ""}。右のパネルから外交・貿易が可能です。`;
+    const usjp = isUsJapanPair(state.player.id, selectedMapNation)
+      ? "、<span style='color:var(--accent)'>主要貿易相手（日米）</span>"
+      : "";
+    el.innerHTML = `<strong>${n.flag} ${n.name}</strong> — 外交関係 ${rel}${deal ? "、<span style='color:var(--good)'>貿易協定締結中</span>" : ""}${usjp}。国際貿易・外交パネルから操作できます。`;
     return;
   }
-  el.innerHTML = `<strong>${n.flag} ${n.name}</strong> — プレイ可能な他国（新規ゲーム時に選択）`;
+  el.innerHTML = `<strong>${n.flag} ${n.name}</strong>`;
 }
 
 function render() {
@@ -284,20 +363,37 @@ function render() {
 
 function renderTrade() {
   const el = document.getElementById("trade-list");
-  el.innerHTML = AI_NATIONS.map((n) => {
+  const partners = tradePartners();
+  const usjp = partners.filter((n) => isUsJapanPair(state.player.id, n.id));
+  const others = partners.filter((n) => !isUsJapanPair(state.player.id, n.id));
+
+  function row(n) {
     const deal = state.tradeDeals[n.id];
     const rel = state.relations[n.id];
+    const bonus = isUsJapanPair(state.player.id, n.id)
+      ? `<span class="badge badge-pacific">日米 +${exportBonusPerPartner(n.id) - (15 + Math.floor(state.player.industry / 10))}億/四半期</span>`
+      : "";
     return `
     <div class="nation-row">
       <span class="name">${n.flag} ${n.name}</span>
       ${deal ? '<span class="badge">協定あり</span>' : `<span style="color:var(--muted);font-size:0.8rem">関係 ${rel}</span>`}
+      ${bonus}
       <div class="row-actions">
         <button type="button" class="btn" data-trade="${n.id}" ${deal || rel < 30 ? "disabled" : ""}>
           貿易協定
         </button>
       </div>
     </div>`;
-  }).join("");
+  }
+
+  let html = "";
+  if (usjp.length) {
+    html += `<p class="trade-group-label">太平洋貿易</p>${usjp.map(row).join("")}`;
+  }
+  if (others.length) {
+    html += `<p class="trade-group-label">その他の相手国</p>${others.map(row).join("")}`;
+  }
+  el.innerHTML = html;
 
   el.querySelectorAll("[data-trade]").forEach((btn) => {
     btn.addEventListener("click", () => proposeTrade(btn.dataset.trade));
@@ -306,7 +402,7 @@ function renderTrade() {
 
 function renderDiplomacy() {
   const el = document.getElementById("diplomacy-list");
-  el.innerHTML = AI_NATIONS.map((n) => {
+  el.innerHTML = tradePartners().map((n) => {
     const rel = state.relations[n.id];
     const pct = Math.max(0, Math.min(100, (rel + 100) / 2));
     const color = relationColor(rel);
@@ -378,18 +474,20 @@ function doPolicy(action) {
 }
 
 function proposeTrade(nationId) {
-  const n = AI_NATIONS.find((x) => x.id === nationId);
-  if (state.relations[nationId] < 30 || state.tradeDeals[nationId]) return;
+  const n = getNation(nationId);
+  if (!n || state.relations[nationId] < 30 || state.tradeDeals[nationId]) return;
   state.tradeDeals[nationId] = true;
   state.relations[nationId] = Math.min(100, state.relations[nationId] + 10);
-  log(`${n.name}と貿易協定を締結しました。輸出が増加します。`);
+  const extra = isUsJapanPair(state.player.id, nationId) ? "日米間の輸出が大きく伸びます。" : "輸出が増加します。";
+  log(`${n.name}と貿易協定を締結しました。${extra}`);
   render();
   autoSave();
 }
 
 function improveRelations(nationId) {
   if (state.player.treasury < COST.diplomacy) return;
-  const n = AI_NATIONS.find((x) => x.id === nationId);
+  const n = getNation(nationId);
+  if (!n) return;
   state.player.treasury -= COST.diplomacy;
   state.relations[nationId] = Math.min(100, state.relations[nationId] + 15);
   log(`${n.name}との外交関係を改善しました。`);
@@ -398,7 +496,8 @@ function improveRelations(nationId) {
 }
 
 function imposeSanctions(nationId) {
-  const n = AI_NATIONS.find((x) => x.id === nationId);
+  const n = getNation(nationId);
+  if (!n) return;
   state.relations[nationId] = Math.max(-100, state.relations[nationId] - 25);
   if (state.tradeDeals[nationId]) {
     state.tradeDeals[nationId] = false;
@@ -423,9 +522,9 @@ function calcQuarterEconomy() {
   const maintenance = p.gdp * 0.01;
 
   let exportIncome = 0;
-  AI_NATIONS.forEach((n) => {
+  tradePartners().forEach((n) => {
     if (state.tradeDeals[n.id]) {
-      exportIncome += 15 + Math.floor(p.industry / 10);
+      exportIncome += exportBonusPerPartner(n.id);
     }
   });
   state.exports = exportIncome;
@@ -460,7 +559,7 @@ function randomEvent() {
   if (ev.industry) p.industry = Math.min(100, p.industry + ev.industry);
   if (ev.stability) p.stability = Math.max(0, Math.min(100, p.stability + ev.stability));
   if (ev.relations) {
-    AI_NATIONS.forEach((n) => {
+    tradePartners().forEach((n) => {
       state.relations[n.id] = Math.min(100, state.relations[n.id] + ev.relations);
     });
   }
@@ -601,6 +700,7 @@ function loadFromSlot(slot) {
     const data = JSON.parse(raw);
     if (data.version !== SAVE_VERSION || !data.state) return false;
     state = hydratePlayer(data.state);
+    ensureTradeState();
     selectedMapNation = null;
     showScreen("screen-game");
     render();

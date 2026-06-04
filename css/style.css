@@ -544,6 +544,29 @@ input[type="range"] {
   font-weight: 600;
 }
 
+.badge-pacific {
+  background: #5a9dff;
+  color: #0f1419;
+}
+
+.trade-group-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0.5rem 0 0.35rem;
+}
+
+.trade-group-label:first-child {
+  margin-top: 0;
+}
+
+.world-map .trade-line-pacific {
+  stroke: #7ec8ff;
+  stroke-width: 2;
+  opacity: 1;
+}
+
 .event-log {
   list-style: none;
   max-height: 180px;
