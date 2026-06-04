@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>現代国家シミュレーター</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>現代国家シミュレーター</h1>
+      <p class="subtitle">元首として内政・経済・外交を運営する</p>
+    </header>
+
+    <section id="screen-start" class="screen active">
+      <h2>国家を選択</h2>
+      <div id="country-select" class="country-grid"></div>
+      <p class="hint">四半期ごとにターンが進みます。財政を黒字に保ち、安定度と外交関係を維持しましょう。</p>
+    </section>
+
+    <section id="screen-game" class="screen">
+      <div class="top-bar">
+        <div class="nation-info">
+          <span id="player-flag" class="flag"></span>
+          <strong id="player-name"></strong>
+          <span id="turn-label" class="turn"></span>
+        </div>
+        <button type="button" id="btn-next-turn" class="btn primary">次の四半期へ</button>
+      </div>
+
+      <div class="stats-grid" id="stats-grid"></div>
+
+      <div class="panels">
+        <article class="panel">
+          <h3>内政・経済</h3>
+          <div class="policy-row">
+            <label>税率 <span id="tax-value"></span>%</label>
+            <input type="range" id="tax-rate" min="5" max="45" step="1">
+          </div>
+          <div class="actions">
+            <button type="button" class="btn" data-action="invest-industry">産業投資 (−50億)</button>
+            <button type="button" class="btn" data-action="invest-welfare">福祉投資 (−40億)</button>
+            <button type="button" class="btn" data-action="invest-infra">インフラ投資 (−35億)</button>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h3>国際貿易</h3>
+          <p class="panel-desc">貿易協定で輸出収入が増加します。</p>
+          <div id="trade-list" class="trade-list"></div>
+        </article>
+
+        <article class="panel">
+          <h3>外交</h3>
+          <div id="diplomacy-list" class="diplomacy-list"></div>
+        </article>
+      </div>
+
+      <article class="panel log-panel">
+        <h3>ニュース</h3>
+        <ul id="event-log" class="event-log"></ul>
+      </article>
+
+      <button type="button" id="btn-restart" class="btn ghost">ゲームをやり直す</button>
+    </section>
+
+    <section id="screen-end" class="screen">
+      <h2 id="end-title"></h2>
+      <p id="end-message"></p>
+      <button type="button" id="btn-play-again" class="btn primary">もう一度</button>
+    </section>
+  </div>
+
+  <script src="js/game.js"></script>
+</body>
+</html>
