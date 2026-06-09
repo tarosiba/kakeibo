@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sunset Drive — OutRun風レトロレース</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a12;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: "Courier New", monospace;
+      color: #fff;
+      overflow: hidden;
+    }
+    #wrap { position: relative; }
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      border: 3px solid #333;
+      box-shadow: 0 0 40px rgba(255,100,50,0.3);
+      cursor: crosshair;
+    }
+    #help {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      line-height: 1.6;
+    }
+    #help kbd {
+      background: #222;
+      border: 1px solid #555;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="game" width="640" height="480"></canvas>
+  </div>
+  <div id="help">
+    <kbd>↑</kbd>/<kbd>W</kbd> 加速　<kbd>↓</kbd>/<kbd>S</kbd> 減速　<kbd>←→</kbd>/<kbd>A D</kbd> ハンドル　<kbd>Space</kbd> ブレーキ<br>
+    のんびり走行モード — 周囲の車は少なめです
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // ── constants ──────────────────────────────────────────
+    const FPS = 60;
+    const STEP = 1 / FPS;
+    const SEG_LEN = 200;
+    const ROAD_W = 2000;
+    const LANES = 3;
+    const FIELD = 12000;
+    const CAM_H = 1000;
+    const CAM_DEPTH = 0.84;
+    const DRAW_DIST = 300;
+    const MAX_SPEED = 6000;       // slow leisurely (~80 kph display)
+    const ACCEL = 1200;
+    const BRAKE = 3000;
+    const DECEL = 400;
+    const OFF_ROAD_DECEL = 2500;
+    const OFF_ROAD_LIMIT = 3000;
+    const CENTRIFUGAL = 0.0004;
+
+    const COLORS = {
+      sky: ["#4ab4f0", "#7ec8f8", "#b8e4ff"],
+      grass: ["#2d8a2d", "#3aaa3a"],
+      rumble: ["#cc3333", "#ffffff"],
+      road: ["#666666", "#5a5a5a"],
+      lane: "#ffffff",
+    };
+
+    // ── input ──────────────────────────────────────────────
+    const keys = {};
+    window.addEventListener("keydown", e => { keys[e.code] = true; e.preventDefault(); });
+    window.addEventListener("keyup", e => { keys[e.code] = false; });
+
+    // ── road segments ──────────────────────────────────────
+    function easeIn(a, b, t) { return a + (b - a) * t * t; }
+    function easeOut(a, b, t) { return a + (b - a) * (1 - (1 - t) * (1 - t)); }
+    function easeInOut(a, b, t) {
+      const p = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      return a + (b - a) * p;
+    }
+
+    function addSegment(curve, y) {
+      const n = segments.length;
+      segments.push({ index: n, curve: curve || 0, y: y || 0, sprites: [] });
+    }
+
+    function addRoad(enter, hold, leave, curve, y) {
+      const start = segments.length;
+      const end = start + enter + hold + leave;
+      for (let i = start; i < end; i++) {
+        let c = 0, h = 0;
+        if (i < start + enter) {
+          const t = (i - start) / enter;
+          c = easeIn(0, curve, t);
+          h = easeIn(0, y, t);
+        } else if (i < start + enter + hold) {
+          c = curve;
+          h = y;
+        } else {
+          const t = (i - (start + enter + hold)) / leave;
+          c = easeOut(curve, 0, t);
+          h = easeOut(y, 0, t);
+        }
+        addSegment(c, h);
+      }
+    }
+
+    function addStraight(n) { addRoad(n, n, n, 0, 0); }
+    function addCurve(n, curve, y) { addRoad(n, n, n, curve, y || 0); }
+
+    function resetRoad() {
+      segments.length = 0;
+      addStraight(80);
+      addCurve(60, 2, 0);
+      addStraight(50);
+      addCurve(60, -2, 0);
+      addStraight(80);
+      addCurve(40, 3, 800);
+      addStraight(60);
+      addCurve(40, -3, -800);
+      addStraight(100);
+      addCurve(50, 1.5, 0);
+      addStraight(120);
+      addCurve(50, -1.5, 0);
+      addStraight(200);
+
+      // palm trees along road
+      for (let n = 20; n < segments.length - 20; n += 6) {
+        if (n % 12 === 0) {
+          segments[n].sprites.push({ type: "palm", offset: -1.4 });
+          segments[n].sprites.push({ type: "palm", offset: 1.4 });
+        }
+        if (n % 8 === 0) {
+          segments[n].sprites.push({ type: "crowd", offset: -1.8 });
+          segments[n].sprites.push({ type: "crowd", offset: 1.8 });
+        }
+      }
+
+      trackLen = segments.length * SEG_LEN;
+    }
+
+    const segments = [];
+    let trackLen = 0;
+    resetRoad();
+
+    // ── minimal traffic ────────────────────────────────────
+    const traffic = [
+      { offset: 0.3, speed: 3500, type: "car", color: "#4488cc", z: 8000 },
+      { offset: -0.2, speed: 2800, type: "bike", color: "#ffcc00", z: 25000 },
+    ];
+
+    // ── player state ───────────────────────────────────────
+    const player = {
+      x: 0, z: 0, speed: 0,
+      gear: 1,
+    };
+
+    let position = 0;
+    let playerX = 0;
+    let speed = 0;
+    let chrono = 0;
+    let record = 49.1;
+    let stage = 1;
+    let gameTime = 60;
+    let startTime = performance.now();
+
+    // ── projection ─────────────────────────────────────────
+    function project(p, cameraX, cameraY, cameraZ, cameraDepth, width, height, roadW) {
+      p.camera.x = (p.world.x || 0) - cameraX;
+      p.camera.y = (p.world.y || 0) - cameraY;
+      p.camera.z = (p.world.z || 0) - cameraZ;
+      p.screen.scale = cameraDepth / p.camera.z;
+      p.screen.x = Math.round(width / 2 + (p.screen.scale * p.camera.x * width / 2));
+      p.screen.y = Math.round(height / 2 - (p.screen.scale * p.camera.y * height / 2));
+      p.screen.w = Math.round((p.screen.scale * roadW * width / 2));
+    }
+
+    function resetSegment(seg) {
+      seg.p1.world = { x: 0, y: seg.y, z: seg.index * SEG_LEN };
+      seg.p2.world = { x: 0, y: seg.y, z: (seg.index + 1) * SEG_LEN };
+      seg.p1.camera = {}; seg.p1.screen = {};
+      seg.p2.camera = {}; seg.p2.screen = {};
+    }
+
+    // ── drawing helpers ────────────────────────────────────
+    function drawPolygon(x1, y1, x2, y2, x3, y3, x4, y4, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+      ctx.lineTo(x3, y3); ctx.lineTo(x4, y4);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawSegment(seg, colorGrass, colorRoad, colorRumble) {
+      const x1 = seg.p1.screen.x, y1 = seg.p1.screen.y;
+      const x2 = seg.p2.screen.x, y2 = seg.p2.screen.y;
+      const w1 = seg.p1.screen.w, w2 = seg.p2.screen.w;
+
+      const l1 = x1 - w1, r1 = x1 + w1;
+      const l2 = x2 - w2, r2 = x2 + w2;
+
+      // grass
+      drawPolygon(0, y2, W, y2, W, y1, 0, y1, colorGrass);
+      // rumble
+      drawPolygon(l1 - w1 * 0.1, y1, l1, y1, l2, y2, l2 - w2 * 0.1, y2, colorRumble);
+      drawPolygon(r1, y1, r1 + w1 * 0.1, y1, r2 + w2 * 0.1, y2, r2, y2, colorRumble);
+      // road
+      drawPolygon(l1, y1, r1, y1, r2, y2, l2, y2, colorRoad);
+      // lane
+      if (seg.color === undefined || seg.color === 1) {
+        const laneW1 = w1 * 0.02, laneW2 = w2 * 0.02;
+        const lanex1 = x1 - w1 / 3, lanex2 = x2 - w2 / 3;
+        drawPolygon(lanex1 - laneW1, y1, lanex1 + laneW1, y1, lanex2 + laneW2, y2, lanex2 - laneW2, y2, COLORS.lane);
+        const lanex1b = x1 + w1 / 3, lanex2b = x2 + w2 / 3;
+        drawPolygon(lanex1b - laneW1, y1, lanex1b + laneW1, y1, lanex2b + laneW2, y2, lanex2b - laneW2, y2, COLORS.lane);
+      }
+    }
+
+    function drawPalm(x, y, scale) {
+      const s = scale * W;
+      if (s < 4) return;
+      // trunk
+      ctx.fillStyle = "#8B5A2B";
+      ctx.fillRect(x - s * 0.03, y - s * 0.5, s * 0.06, s * 0.5);
+      // leaves
+      ctx.fillStyle = "#2d8a2d";
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.ellipse(x + Math.cos(a) * s * 0.15, y - s * 0.5 + Math.sin(a) * s * 0.05,
+          s * 0.2, s * 0.06, a, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawCrowd(x, y, scale) {
+      const s = scale * W;
+      if (s < 3) return;
+      const colors = ["#ff4444", "#44ff44", "#4444ff", "#ffff44", "#ff44ff", "#ffffff"];
+      for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = colors[i % colors.length];
+        const px = x + (i - 4) * s * 0.06;
+        ctx.fillRect(px, y - s * 0.12, s * 0.04, s * 0.12);
+        ctx.fillStyle = "#ffcc99";
+        ctx.fillRect(px, y - s * 0.16, s * 0.04, s * 0.04);
+      }
+    }
+
+    function drawTrafficSprite(x, y, scale, type, color) {
+      const s = scale * W;
+      if (s < 6) return;
+      if (type === "bike") {
+        ctx.fillStyle = color;
+        ctx.fillRect(x - s * 0.04, y - s * 0.2, s * 0.08, s * 0.15);
+        ctx.fillStyle = "#333";
+        ctx.beginPath();
+        ctx.arc(x - s * 0.05, y - s * 0.05, s * 0.05, 0, Math.PI * 2);
+        ctx.arc(x + s * 0.05, y - s * 0.05, s * 0.05, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = color;
+        ctx.fillRect(x - s * 0.1, y - s * 0.18, s * 0.2, s * 0.14);
+        ctx.fillStyle = "#88ccff";
+        ctx.fillRect(x - s * 0.08, y - s * 0.22, s * 0.16, s * 0.05);
+        ctx.fillStyle = "#222";
+        ctx.fillRect(x - s * 0.11, y - s * 0.06, s * 0.04, s * 0.04);
+        ctx.fillRect(x + s * 0.07, y - s * 0.06, s * 0.04, s * 0.04);
+      }
+    }
+
+    function drawPlayerCar() {
+      const cx = W / 2;
+      const cy = H - 90;
+      const s = 1.0;
+
+      // shadow
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 30, 55, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // body - red convertible
+      ctx.fillStyle = "#cc2222";
+      ctx.beginPath();
+      ctx.moveTo(cx - 50, cy + 10);
+      ctx.lineTo(cx - 45, cy - 20);
+      ctx.lineTo(cx - 20, cy - 35);
+      ctx.lineTo(cx + 20, cy - 35);
+      ctx.lineTo(cx + 45, cy - 20);
+      ctx.lineTo(cx + 50, cy + 10);
+      ctx.closePath();
+      ctx.fill();
+
+      // windshield
+      ctx.fillStyle = "#6699cc";
+      ctx.fillRect(cx - 18, cy - 32, 36, 14);
+
+      // driver heads
+      ctx.fillStyle = "#ffcc99";
+      ctx.fillRect(cx - 12, cy - 28, 10, 10);
+      ctx.fillStyle = "#ffdd55";
+      ctx.fillRect(cx + 4, cy - 28, 10, 10);
+
+      // wheels
+      ctx.fillStyle = "#222";
+      ctx.fillRect(cx - 48, cy + 2, 14, 10);
+      ctx.fillRect(cx + 34, cy + 2, 14, 10);
+
+      // exhaust flame when accelerating
+      if (keys["ArrowUp"] || keys["KeyW"]) {
+        ctx.fillStyle = "#ff8800";
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + 12);
+        ctx.lineTo(cx - 6, cy + 28);
+        ctx.lineTo(cx + 6, cy + 28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#ffcc00";
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + 12);
+        ctx.lineTo(cx - 3, cy + 22);
+        ctx.lineTo(cx + 3, cy + 22);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // ── HUD ────────────────────────────────────────────────
+    function drawHUD() {
+      const kph = Math.round(speed / 75);
+      const rpm = Math.min(10, Math.round(speed / 600));
+      const gear = speed < 500 ? 1 : speed < 2000 ? 2 : speed < 4000 ? 3 : 4;
+      const elapsed = (performance.now() - startTime) / 1000;
+      const mins = Math.floor(elapsed / 60);
+      const secs = Math.floor(elapsed % 60);
+      const ms = Math.floor((elapsed % 1) * 1000);
+      const timeLeft = Math.max(0, gameTime - Math.floor(elapsed));
+
+      // top bar background
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillRect(0, 0, W, 28);
+
+      // POS
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 14px Courier New";
+      ctx.textAlign = "left";
+      ctx.fillText("POS 1 / 1", 10, 19);
+
+      // TIME
+      ctx.textAlign = "center";
+      ctx.fillText(`TIME ${timeLeft}`, W / 2, 19);
+
+      // CHRONO / RECORD
+      ctx.textAlign = "right";
+      ctx.font = "12px Courier New";
+      ctx.fillText(`CHRONO ${String(mins).padStart(2,"0")}:${String(secs).padStart(2,"0")}:${String(ms).padStart(3,"0")}`, W - 10, 14);
+      ctx.fillText(`RECORD 00:${String(Math.floor(record)).padStart(2,"0")}:${String(Math.floor((record%1)*1000)).padStart(3,"0")}`, W - 10, 26);
+
+      // progress bar
+      const prog = (position % trackLen) / trackLen;
+      ctx.fillStyle = "#333";
+      ctx.fillRect(60, 32, W - 120, 8);
+      ctx.fillStyle = "#ff4444";
+      ctx.fillRect(60, 32, (W - 120) * prog, 8);
+      ctx.fillStyle = "#fff";
+      ctx.font = "10px Courier New";
+      ctx.textAlign = "left";
+      ctx.fillText("S", 48, 40);
+      ctx.textAlign = "right";
+      ctx.fillText("G", W - 48, 40);
+      // arrow on progress
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.moveTo(60 + (W - 120) * prog, 28);
+      ctx.lineTo(60 + (W - 120) * prog - 4, 34);
+      ctx.lineTo(60 + (W - 120) * prog + 4, 34);
+      ctx.closePath();
+      ctx.fill();
+
+      // dashboard area
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(0, H - 70, W, 70);
+
+      // speedometer
+      drawGauge(80, H - 35, 50, kph, 340, "KPH");
+      drawGauge(180, H - 35, 40, rpm, 10, "x1000", true);
+      drawGauge(260, H - 35, 30, 80, 120, "TEMP");
+
+      // gear
+      ctx.fillStyle = "#0f0";
+      ctx.font = "bold 28px Courier New";
+      ctx.textAlign = "center";
+      ctx.fillText(String(gear), 330, H - 25);
+
+      // stage + bars
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 14px Courier New";
+      ctx.textAlign = "right";
+      ctx.fillText(`STAGE ${stage}`, W - 20, H - 50);
+      for (let i = 0; i < 4; i++) {
+        ctx.fillStyle = i < 3 ? "#44cc44" : "#226622";
+        ctx.fillRect(W - 100 + i * 22, H - 35, 18, 20);
+      }
+    }
+
+    function drawGauge(cx, cy, r, value, max, label, isRpm) {
+      ctx.strokeStyle = "#888";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, Math.PI * 0.75, Math.PI * 2.25);
+      ctx.stroke();
+
+      const angle = Math.PI * 0.75 + (Math.min(value, max) / max) * Math.PI * 1.5;
+      ctx.strokeStyle = isRpm ? "#ff4444" : "#44ff44";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * (r - 5), cy + Math.sin(angle) * (r - 5));
+      ctx.stroke();
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "9px Courier New";
+      ctx.textAlign = "center";
+      ctx.fillText(label, cx, cy + r + 12);
+      if (!isRpm && label === "KPH") {
+        ctx.font = "bold 11px Courier New";
+        ctx.fillText(String(value), cx, cy + 4);
+      }
+    }
+
+    // ── sky & background ───────────────────────────────────
+    function drawBackground() {
+      const grad = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+      grad.addColorStop(0, COLORS.sky[0]);
+      grad.addColorStop(0.5, COLORS.sky[1]);
+      grad.addColorStop(1, COLORS.sky[2]);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H * 0.55);
+
+      // clouds
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      [[100, 60, 40], [300, 40, 30], [500, 70, 35]].forEach(([x, y, s]) => {
+        ctx.beginPath();
+        ctx.arc(x, y, s, 0, Math.PI * 2);
+        ctx.arc(x + s * 0.8, y - s * 0.2, s * 0.7, 0, Math.PI * 2);
+        ctx.arc(x + s * 1.5, y, s * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // ocean horizon
+      ctx.fillStyle = "#3388cc";
+      ctx.fillRect(0, H * 0.42, W, H * 0.08);
+      ctx.fillStyle = "#44aa44";
+      ctx.fillRect(0, H * 0.48, W, H * 0.07);
+    }
+
+    // ── update ─────────────────────────────────────────────
+    function update(dt) {
+      const dx = dt * 4;
+      const accel = keys["ArrowUp"] || keys["KeyW"];
+      const brake = keys["ArrowDown"] || keys["KeyS"] || keys["Space"];
+      const left = keys["ArrowLeft"] || keys["KeyA"];
+      const right = keys["ArrowRight"] || keys["KeyD"];
+
+      const playerSegment = segments[Math.floor(position / SEG_LEN) % segments.length];
+      const speedPercent = speed / MAX_SPEED;
+      const dx_curve = dx * speedPercent * playerSegment.curve * CENTRIFUGAL;
+
+      playerX -= dx_curve;
+      if (left) playerX -= dx * 2;
+      if (right) playerX += dx * 2;
+
+      if (accel) speed = Math.min(speed + ACCEL * dt, MAX_SPEED);
+      else if (brake) speed = Math.max(speed - BRAKE * dt, 0);
+      else speed = Math.max(speed - DECEL * dt, 0);
+
+      const off = ROAD_W / 2 * 0.9;
+      if (playerX < -off || playerX > off) {
+        speed = Math.max(speed - OFF_ROAD_DECEL * dt, OFF_ROAD_LIMIT);
+      }
+
+      position = (position + speed * dt) % trackLen;
+
+      // traffic moves
+      traffic.forEach(t => {
+        t.z += t.speed * dt;
+        if (t.z > trackLen) t.z -= trackLen;
+      });
+    }
+
+    function findSegment(z) {
+      return segments[Math.floor(z / SEG_LEN) % segments.length];
+    }
+
+    function segmentX(segIdx) {
+      let x = 0, dx = 0;
+      for (let i = 0; i < segIdx; i++) {
+        x += dx;
+        dx += segments[i % segments.length].curve;
+      }
+      return x;
+    }
+
+    // ── render ─────────────────────────────────────────────
+    function render() {
+      drawBackground();
+
+      const baseSeg = Math.floor(position / SEG_LEN);
+      const camH = CAM_H + findSegment(position).y;
+      let maxY = H;
+
+      // precompute world positions for visible segments
+      const visible = [];
+      for (let n = 0; n < DRAW_DIST; n++) {
+        const segIdx = (baseSeg + n) % segments.length;
+        const seg = segments[segIdx];
+        const looped = segIdx < baseSeg;
+        const z = n * SEG_LEN;
+        const worldZ = (seg.index + 1) * SEG_LEN;
+        const worldX = segmentX(seg.index + 1);
+
+        resetSegment(seg);
+        seg.p1.world = { x: segmentX(seg.index), y: seg.y, z: seg.index * SEG_LEN };
+        seg.p2.world = { x: worldX, y: seg.y, z: worldZ };
+        seg.color = Math.floor(seg.index / 3) % 2;
+
+        const camZ = position - (looped ? trackLen : 0);
+        project(seg.p1, playerX * ROAD_W, camH, camZ, CAM_DEPTH, W, H, ROAD_W);
+        project(seg.p2, playerX * ROAD_W, camH, camZ, CAM_DEPTH, W, H, ROAD_W);
+        visible.push({ seg, segIdx, looped, camZ, n });
+      }
+
+      for (const v of visible) {
+        const { seg } = v;
+        if (seg.p1.camera.z <= CAM_DEPTH) continue;
+        if (seg.p2.screen.y >= maxY) continue;
+        drawSegment(seg, COLORS.grass[seg.color], COLORS.road[seg.color], COLORS.rumble[seg.color]);
+        maxY = seg.p2.screen.y;
+      }
+
+      // sprites (back to front)
+      for (let i = visible.length - 1; i >= 0; i--) {
+        const { seg, camZ } = visible[i];
+        const roadX = seg.p1.world.x;
+
+        seg.sprites.forEach(sp => {
+          const p = { world: { x: roadX + sp.offset * ROAD_W, y: seg.y, z: seg.index * SEG_LEN }, camera: {}, screen: {} };
+          project(p, playerX * ROAD_W, camH, camZ, CAM_DEPTH, W, H, ROAD_W);
+          if (p.camera.z <= CAM_DEPTH) return;
+          if (sp.type === "palm") drawPalm(p.screen.x, p.screen.y, p.screen.scale);
+          else if (sp.type === "crowd") drawCrowd(p.screen.x, p.screen.y, p.screen.scale);
+        });
+
+        traffic.forEach(t => {
+          const tSeg = Math.floor(t.z / SEG_LEN) % segments.length;
+          if (tSeg !== seg.index) return;
+          const tx = segmentX(tSeg) + t.offset * ROAD_W * 0.5;
+          const p = { world: { x: tx, y: 0, z: t.z }, camera: {}, screen: {} };
+          project(p, playerX * ROAD_W, camH, camZ, CAM_DEPTH, W, H, ROAD_W);
+          if (p.camera.z <= CAM_DEPTH) return;
+          drawTrafficSprite(p.screen.x, p.screen.y, p.screen.scale, t.type, t.color);
+        });
+      }
+
+      drawPlayerCar();
+      drawHUD();
+    }
+
+    // ── game loop ──────────────────────────────────────────
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      update(dt);
+      render();
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
