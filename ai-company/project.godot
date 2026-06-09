@@ -14,6 +14,7 @@ config/features=PackedStringArray("4.2", "Forward Plus")
 
 Game="*res://scripts/game.gd"
 Research="*res://scripts/research.gd"
+Market="*res://scripts/market.gd"
 LlmConfig="*res://scripts/llm_config.gd"
 LlmClient="*res://scripts/llm_client.gd"
 

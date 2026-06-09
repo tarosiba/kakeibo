@@ -29,19 +29,59 @@ extends Control
 @onready var chat_demo: CanvasLayer = $ChatDemo
 @onready var research_panel: CanvasLayer = $ResearchPanel
 @onready var research_btn: Button = $Margin/Root/ResearchRow/ResearchBtn
+@onready var market_list: ItemList = $Margin/Root/Body/MarketPanel/MarketList
+@onready var market_rank_label: Label = $Margin/Root/Body/MarketPanel/MarketRankLabel
+@onready var auto_btn: Button = $Margin/Root/Actions/AutoBtn
+
+var _auto_timer: Timer
+var _auto_running: bool = false
 
 
 func _ready() -> void:
+	_setup_auto_timer()
 	LlmClient.reset_session()
 	Game.state_changed.connect(_refresh_ui)
 	Game.log_added.connect(func(_m): _refresh_log())
 	Research.research_changed.connect(_refresh_ui)
+	Market.market_changed.connect(_refresh_ui)
 	_connect_buttons()
 	_refresh_ui()
 
 
+func _setup_auto_timer() -> void:
+	_auto_timer = Timer.new()
+	_auto_timer.wait_time = 1.0
+	_auto_timer.autostart = false
+	_auto_timer.timeout.connect(_on_auto_tick)
+	add_child(_auto_timer)
+
+
+func _on_auto_tick() -> void:
+	if _is_modal_open():
+		return
+	if Game.money <= 0.0 and Game.day > 1:
+		_set_auto_running(false)
+		return
+	Game.advance_day()
+
+
+func _is_modal_open() -> bool:
+	return chat_demo.visible or research_panel.visible
+
+
+func _set_auto_running(running: bool) -> void:
+	_auto_running = running
+	if running:
+		_auto_timer.start()
+		auto_btn.text = "オート停止"
+	else:
+		_auto_timer.stop()
+		auto_btn.text = "オート進行"
+
+
 func _connect_buttons() -> void:
 	next_day_btn.pressed.connect(Game.advance_day)
+	auto_btn.pressed.connect(func(): _set_auto_running(not _auto_running))
 	hire_btn.pressed.connect(Game.hire_employee)
 	gpu_btn.pressed.connect(Game.buy_gpu)
 	llm_btn.pressed.connect(func(): Game.start_project(AIProject.Type.LLM))
@@ -77,7 +117,12 @@ func _refresh_ui() -> void:
 	staff_label.text = "研究者: %d名" % Game.employee_count
 	gpu_label.text = "GPU: %d台" % Game.gpu_count
 	burn_label.text = "日次コスト: $%.0f" % Game.get_daily_burn()
-	revenue_label.text = "日次収益: $%.0f" % Game.get_daily_revenue()
+	var base_rev := Game.get_base_daily_revenue()
+	var eff_rev := Game.get_daily_revenue()
+	if base_rev > 0.0 and abs(eff_rev - base_rev) > 0.5:
+		revenue_label.text = "日次収益: $%.0f (シェア補正)" % eff_rev
+	else:
+		revenue_label.text = "日次収益: $%.0f" % eff_rev
 
 	if Game.active_project == null:
 		project_label.text = "進行中プロジェクト: なし"
@@ -90,20 +135,26 @@ func _refresh_ui() -> void:
 		project_label.text = "進行中: %s" % p.get_summary()
 		progress_bar.value = p.get_phase_ratio() * 100.0
 		cancel_btn.disabled = false
-
-	var can_focus := p.can_adjust_focus()
-	focus_label.visible = can_focus
-	focus_row.visible = can_focus
-	focus_safety_btn.visible = can_focus
-	focus_balanced_btn.visible = can_focus
-	focus_accuracy_btn.visible = can_focus
-	focus_safety_btn.disabled = not can_focus
-	focus_balanced_btn.disabled = not can_focus
-	focus_accuracy_btn.disabled = not can_focus
-	if can_focus:
-		focus_label.text = "開発方針（学習/評価中）: %s" % p.get_focus_name()
+		var can_focus := p.can_adjust_focus()
+		focus_label.visible = can_focus
+		focus_row.visible = can_focus
+		focus_safety_btn.visible = can_focus
+		focus_balanced_btn.visible = can_focus
+		focus_accuracy_btn.visible = can_focus
+		focus_safety_btn.disabled = not can_focus
+		focus_balanced_btn.disabled = not can_focus
+		focus_accuracy_btn.disabled = not can_focus
+		if can_focus:
+			focus_label.text = "開発方針（学習/評価中）: %s" % p.get_focus_name()
 
 	research_status_label.text = "研究: %s" % Research.get_active_label()
+
+	market_list.clear()
+	for line in Market.get_share_lines():
+		market_list.add_item(line)
+	market_rank_label.text = "市場順位: %d位 / シェア %.1f%% | 首位: %s" % [
+		Market.get_rank(), Market.player_share, Market.get_leader_name()
+	]
 
 	products_list.clear()
 	for product in Game.launched_products:

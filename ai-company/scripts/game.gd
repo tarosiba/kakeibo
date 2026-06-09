@@ -41,6 +41,13 @@ func get_daily_revenue() -> float:
 	var total := 0.0
 	for product in launched_products:
 		total += product.daily_revenue
+	return total * Market.get_revenue_multiplier()
+
+
+func get_base_daily_revenue() -> float:
+	var total := 0.0
+	for product in launched_products:
+		total += product.daily_revenue
 	return total
 
 
@@ -102,6 +109,7 @@ func advance_day() -> void:
 	day += 1
 
 	Research.advance_day(employee_count)
+	Market.advance_day()
 
 	if active_project != null:
 		var finished_phase := active_project.apply_work(get_work_per_day())
@@ -123,6 +131,7 @@ func _on_phase_completed() -> void:
 	if active_project.phase == AIProject.Phase.LAUNCHED:
 		launched_products.append(active_project)
 		reputation = clampf(reputation + 8.0, 0.0, 100.0)
+		Market.on_player_launch(active_project)
 		_add_log("ローンチ成功! %s" % active_project.get_summary())
 		active_project = null
 	else:
@@ -141,7 +150,8 @@ func _maybe_trigger_event() -> void:
 			_add_log("VCから資金調達 +$%.0f" % bonus)
 		1:
 			reputation = clampf(reputation - randf_range(4.0, 10.0), 0.0, 100.0)
-			_add_log("競合が同等モデルを公開。評判が下がった。")
+			Market.apply_competitor_pressure(randf_range(0.8, 2.5))
+			_add_log("競合が同等モデルを公開。評判とシェアが低下。")
 		2:
 			if active_project != null:
 				active_project.add_controversy(randf_range(8.0, 20.0))

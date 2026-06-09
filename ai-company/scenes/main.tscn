@@ -128,6 +128,10 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "翌日へ"
 
+[node name="AutoBtn" type="Button" parent="Margin/Root/Actions"]
+layout_mode = 2
+text = "オート進行"
+
 [node name="HireBtn" type="Button" parent="Margin/Root/Actions"]
 layout_mode = 2
 text = "採用 ($9k)"
@@ -163,10 +167,28 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
+[node name="MarketPanel" type="VBoxContainer" parent="Margin/Root/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.28
+
+[node name="MarketTitle" type="Label" parent="Margin/Root/Body/MarketPanel"]
+layout_mode = 2
+text = "AI市場シェア"
+
+[node name="MarketRankLabel" type="Label" parent="Margin/Root/Body/MarketPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "市場順位: -"
+
+[node name="MarketList" type="ItemList" parent="Margin/Root/Body/MarketPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
 [node name="ProductsPanel" type="VBoxContainer" parent="Margin/Root/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.4
+size_flags_stretch_ratio = 0.32
 
 [node name="ProductsTitle" type="Label" parent="Margin/Root/Body/ProductsPanel"]
 layout_mode = 2
@@ -179,7 +201,7 @@ size_flags_vertical = 3
 [node name="LogPanel" type="VBoxContainer" parent="Margin/Root/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.6
+size_flags_stretch_ratio = 0.4
 
 [node name="LogTitle" type="Label" parent="Margin/Root/Body/LogPanel"]
 layout_mode = 2
