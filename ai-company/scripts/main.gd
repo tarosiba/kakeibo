@@ -9,6 +9,12 @@ extends Control
 @onready var revenue_label: Label = $Margin/Root/Stats/RevenueLabel
 @onready var project_label: Label = $Margin/Root/ProjectPanel/ProjectLabel
 @onready var progress_bar: ProgressBar = $Margin/Root/ProjectPanel/ProgressBar
+@onready var focus_row: HBoxContainer = $Margin/Root/ProjectPanel/FocusRow
+@onready var focus_label: Label = $Margin/Root/ProjectPanel/FocusLabel
+@onready var focus_safety_btn: Button = $Margin/Root/ProjectPanel/FocusRow/FocusSafetyBtn
+@onready var focus_balanced_btn: Button = $Margin/Root/ProjectPanel/FocusRow/FocusBalancedBtn
+@onready var focus_accuracy_btn: Button = $Margin/Root/ProjectPanel/FocusRow/FocusAccuracyBtn
+@onready var research_status_label: Label = $Margin/Root/ResearchRow/ResearchStatusLabel
 @onready var products_list: ItemList = $Margin/Root/ProductsPanel/ProductsList
 @onready var log_label: RichTextLabel = $Margin/Root/LogPanel/LogLabel
 
@@ -21,12 +27,15 @@ extends Control
 @onready var cancel_btn: Button = $Margin/Root/Actions/CancelBtn
 @onready var demo_btn: Button = $Margin/Root/Actions/DemoBtn
 @onready var chat_demo: CanvasLayer = $ChatDemo
+@onready var research_panel: CanvasLayer = $ResearchPanel
+@onready var research_btn: Button = $Margin/Root/ResearchRow/ResearchBtn
 
 
 func _ready() -> void:
 	LlmClient.reset_session()
 	Game.state_changed.connect(_refresh_ui)
 	Game.log_added.connect(func(_m): _refresh_log())
+	Research.research_changed.connect(_refresh_ui)
 	_connect_buttons()
 	_refresh_ui()
 
@@ -40,6 +49,18 @@ func _connect_buttons() -> void:
 	recommend_btn.pressed.connect(func(): Game.start_project(AIProject.Type.RECOMMEND))
 	cancel_btn.pressed.connect(Game.cancel_project)
 	demo_btn.pressed.connect(_open_chat_demo)
+	research_btn.pressed.connect(func(): research_panel.open_panel())
+	focus_safety_btn.pressed.connect(func(): _set_focus(AIProject.DevFocus.SAFETY))
+	focus_balanced_btn.pressed.connect(func(): _set_focus(AIProject.DevFocus.BALANCED))
+	focus_accuracy_btn.pressed.connect(func(): _set_focus(AIProject.DevFocus.ACCURACY))
+
+
+func _set_focus(focus: AIProject.DevFocus) -> void:
+	if Game.active_project == null:
+		return
+	Game.active_project.set_dev_focus(focus)
+	Game.add_log("開発方針を変更: %s" % Game.active_project.get_focus_name())
+	_refresh_ui()
 
 
 func _open_chat_demo() -> void:
@@ -62,11 +83,27 @@ func _refresh_ui() -> void:
 		project_label.text = "進行中プロジェクト: なし"
 		progress_bar.value = 0.0
 		cancel_btn.disabled = true
+		focus_label.visible = false
+		focus_row.visible = false
 	else:
 		var p := Game.active_project
 		project_label.text = "進行中: %s" % p.get_summary()
 		progress_bar.value = p.get_phase_ratio() * 100.0
 		cancel_btn.disabled = false
+
+	var can_focus := p.can_adjust_focus()
+	focus_label.visible = can_focus
+	focus_row.visible = can_focus
+	focus_safety_btn.visible = can_focus
+	focus_balanced_btn.visible = can_focus
+	focus_accuracy_btn.visible = can_focus
+	focus_safety_btn.disabled = not can_focus
+	focus_balanced_btn.disabled = not can_focus
+	focus_accuracy_btn.disabled = not can_focus
+	if can_focus:
+		focus_label.text = "開発方針（学習/評価中）: %s" % p.get_focus_name()
+
+	research_status_label.text = "研究: %s" % Research.get_active_label()
 
 	products_list.clear()
 	for product in Game.launched_products:

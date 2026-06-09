@@ -101,6 +101,8 @@ func advance_day() -> void:
 	money += revenue - burn
 	day += 1
 
+	Research.advance_day(employee_count)
+
 	if active_project != null:
 		var finished_phase := active_project.apply_work(get_work_per_day())
 		if finished_phase:
@@ -169,6 +171,10 @@ func get_launched_llm_products() -> Array[AIProject]:
 
 func get_log_text() -> String:
 	return "\n".join(_log)
+
+
+func add_log(message: String) -> void:
+	_add_log(message)
 
 
 func _add_log(message: String) -> void:

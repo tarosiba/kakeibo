@@ -4,6 +4,7 @@ extends RefCounted
 
 enum Type { LLM, VISION, RECOMMEND }
 enum Phase { DATA, TRAIN, EVAL, DEPLOY, LAUNCHED }
+enum DevFocus { SAFETY, BALANCED, ACCURACY }
 
 const TYPE_NAMES := {
 	Type.LLM: "大規模言語モデル",
@@ -36,6 +37,13 @@ var safety: float = 0.0
 var inference_speed: float = 0.0
 var daily_revenue: float = 0.0
 var controversy: float = 0.0
+var dev_focus: DevFocus = DevFocus.BALANCED
+
+const FOCUS_NAMES := {
+	DevFocus.SAFETY: "安全重視",
+	DevFocus.BALANCED: "均衡",
+	DevFocus.ACCURACY: "精度重視",
+}
 
 
 static func create(type_id: Type, index: int) -> AIProject:
@@ -60,10 +68,32 @@ func get_phase_ratio() -> float:
 	return clampf(phase_progress / need, 0.0, 1.0)
 
 
+func can_adjust_focus() -> bool:
+	return phase == Phase.TRAIN or phase == Phase.EVAL
+
+
+func set_dev_focus(focus: DevFocus) -> void:
+	if not can_adjust_focus():
+		return
+	dev_focus = focus
+
+
+func get_focus_name() -> String:
+	return FOCUS_NAMES.get(dev_focus, "均衡")
+
+
+func get_work_multiplier() -> float:
+	if phase == Phase.TRAIN and dev_focus == DevFocus.ACCURACY:
+		return 0.92
+	if phase == Phase.EVAL and dev_focus == DevFocus.SAFETY:
+		return 0.94
+	return 1.0
+
+
 func apply_work(amount: float) -> bool:
 	if phase == Phase.LAUNCHED:
 		return false
-	phase_progress += amount
+	phase_progress += amount * get_work_multiplier()
 	var need: float = PHASE_WORK.get(phase, 100.0)
 	if phase_progress < need:
 		return false
@@ -90,7 +120,31 @@ func _finalize_stats() -> void:
 	accuracy = clampf(base + randf_range(-8.0, 12.0) - controversy * 0.3, 30.0, 98.0)
 	safety = clampf(randf_range(50.0, 80.0) - controversy * 0.5, 20.0, 99.0)
 	inference_speed = clampf(randf_range(40.0, 90.0), 10.0, 100.0)
+
+	_apply_research_bonuses()
+	_apply_focus_tradeoff()
 	daily_revenue = _calc_revenue()
+
+
+func _apply_research_bonuses() -> void:
+	var bonus: Dictionary = Research.get_bonuses_for_type(type)
+	accuracy = clampf(accuracy + bonus.accuracy, 10.0, 99.0)
+	safety = clampf(safety + bonus.safety, 10.0, 99.0)
+	inference_speed = clampf(inference_speed + bonus.speed, 5.0, 100.0)
+
+
+func _apply_focus_tradeoff() -> void:
+	match dev_focus:
+		DevFocus.ACCURACY:
+			accuracy = clampf(accuracy + 14.0, 10.0, 99.0)
+			safety = clampf(safety - 10.0, 10.0, 99.0)
+			controversy = clampf(controversy + 4.0, 0.0, 100.0)
+		DevFocus.SAFETY:
+			safety = clampf(safety + 14.0, 10.0, 99.0)
+			accuracy = clampf(accuracy - 8.0, 10.0, 99.0)
+			inference_speed = clampf(inference_speed - 3.0, 5.0, 100.0)
+		_:
+			pass
 
 
 func _calc_revenue() -> float:
@@ -114,8 +168,11 @@ func add_controversy(amount: float) -> void:
 
 func get_summary() -> String:
 	if phase != Phase.LAUNCHED:
-		return "%s [%s] %s %.0f%%" % [
-			project_name, get_type_name(), get_phase_name(), get_phase_ratio() * 100.0
+		var focus_note := ""
+		if can_adjust_focus():
+			focus_note = " / %s" % get_focus_name()
+		return "%s [%s] %s %.0f%%%s" % [
+			project_name, get_type_name(), get_phase_name(), get_phase_ratio() * 100.0, focus_note
 		]
 	return "%s | 精度%.0f 安全%.0f 収益$%.0f/日" % [
 		project_name, accuracy, safety, daily_revenue
