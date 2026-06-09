@@ -1,0 +1,146 @@
+[gd_scene load_steps=2 format=3 uid="uid://ai_company_main"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="Root" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+
+[node name="DayLabel" type="Label" parent="Margin/Root/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 22
+text = "Day 1"
+
+[node name="MoneyLabel" type="Label" parent="Margin/Root/Header"]
+layout_mode = 2
+text = "資金: $0"
+
+[node name="RepLabel" type="Label" parent="Margin/Root/Header"]
+layout_mode = 2
+text = "評判: 0"
+
+[node name="Stats" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+
+[node name="StaffLabel" type="Label" parent="Margin/Root/Stats"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "研究者: 0"
+
+[node name="GpuLabel" type="Label" parent="Margin/Root/Stats"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "GPU: 0"
+
+[node name="BurnLabel" type="Label" parent="Margin/Root/Stats"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "日次コスト: $0"
+
+[node name="RevenueLabel" type="Label" parent="Margin/Root/Stats"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "日次収益: $0"
+
+[node name="ProjectPanel" type="VBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+
+[node name="ProjectLabel" type="Label" parent="Margin/Root/ProjectPanel"]
+layout_mode = 2
+text = "進行中プロジェクト: なし"
+
+[node name="ProgressBar" type="ProgressBar" parent="Margin/Root/ProjectPanel"]
+layout_mode = 2
+max_value = 100.0
+
+[node name="Actions" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NextDayBtn" type="Button" parent="Margin/Root/Actions"]
+layout_mode = 2
+text = "翌日へ"
+
+[node name="HireBtn" type="Button" parent="Margin/Root/Actions"]
+layout_mode = 2
+text = "採用 ($9k)"
+
+[node name="GpuBtn" type="Button" parent="Margin/Root/Actions"]
+layout_mode = 2
+text = "GPU購入 ($18k)"
+
+[node name="LlmBtn" type="Button" parent="Margin/Root/Actions"]
+layout_mode = 2
+text = "LLM開発"
+
+[node name="VisionBtn" type="Button" parent="Margin/Root/Actions"]
+layout_mode = 2
+text = "画像AI"
+
+[node name="RecommendBtn" type="Button" parent="Margin/Root/Actions"]
+layout_mode = 2
+text = "推薦AI"
+
+[node name="CancelBtn" type="Button" parent="Margin/Root/Actions"]
+layout_mode = 2
+disabled = true
+text = "中止"
+
+[node name="Body" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="ProductsPanel" type="VBoxContainer" parent="Margin/Root/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.4
+
+[node name="ProductsTitle" type="Label" parent="Margin/Root/Body/ProductsPanel"]
+layout_mode = 2
+text = "ローンチ済み製品"
+
+[node name="ProductsList" type="ItemList" parent="Margin/Root/Body/ProductsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LogPanel" type="VBoxContainer" parent="Margin/Root/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.6
+
+[node name="LogTitle" type="Label" parent="Margin/Root/Body/LogPanel"]
+layout_mode = 2
+text = "イベントログ"
+
+[node name="LogLabel" type="RichTextLabel" parent="Margin/Root/Body/LogPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+scroll_following = true
+bbcode_enabled = false
+text = ""

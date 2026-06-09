@@ -1,0 +1,22 @@
+; Engine configuration file.
+; Godot 4.x AI company management minimal prototype
+
+config_version=5
+
+[application]
+
+config/name="AI Company Proto"
+config/description="Minimal AI startup management simulation (no real ML)"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.2", "Forward Plus")
+
+[autoload]
+
+Game="*res://scripts/game.gd"
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=540
+window/stretch/mode="viewport"
+window/stretch/aspect="keep"
