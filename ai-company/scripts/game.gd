@@ -159,6 +159,14 @@ func _maybe_trigger_event() -> void:
 				_add_log("ハイパーパラメータ調整が功を奏し、学習が加速。")
 
 
+func get_launched_llm_products() -> Array[AIProject]:
+	var out: Array[AIProject] = []
+	for product in launched_products:
+		if product.type == AIProject.Type.LLM:
+			out.append(product)
+	return out
+
+
 func get_log_text() -> String:
 	return "\n".join(_log)
 

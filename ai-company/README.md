@@ -1,10 +1,12 @@
 # AI Company Proto (Godot 4)
 
-本物の機械学習は使わず、**AI開発会社の経営を数値シミュレーション**する最小プロトタイプです。
+本物の機械学習は使わず、**AI開発会社の経営を数値シミュレーション**する最小プロトタイプです。  
+LLM製品ローンチ後は、**任意の演出機能**として外部AIチャットデモも利用できます。
 
 ## 必要環境
 
 - Godot **4.2** 以上
+- （任意）Ollama または OpenAI互換API
 
 ## 起動
 
@@ -20,6 +22,40 @@
 | GPU購入 | GPU +1（開発速度↑、電力費↑） |
 | LLM / 画像AI / 推薦AI | 新規プロジェクト開始（同時1件） |
 | 中止 | 進行中プロジェクトをキャンセル |
+| 製品デモ | LLMローンチ後にチャット演出を開く（任意） |
+
+## 製品デモチャット（任意・演出）
+
+経営シミュレーション本体とは独立したオプション機能です。
+
+### 安全設計
+
+| 項目 | 実装 |
+|------|------|
+| APIキー | `user://llm_config.cfg` に保存。ソース直書きなし |
+| 環境変数 | `AI_COMPANY_API_KEY` などで上書き可 |
+| コスト制限 | 1プレイあたりのリクエスト上限（デフォルト15回） |
+| 必須機能にしない | API未設定・障害時はオフライン応答に自動フォールバック |
+| レーティング | 全年齢向けモード + 出力フィルタ（不適切語句をマスク） |
+| 通信待ち | 応答中は「考え中...」表示、入力ロック |
+
+### 設定手順（Ollama例）
+
+1. [Ollama](https://ollama.com/) をインストールし `ollama pull llama3.2`
+2. ゲーム内「製品デモ」→「LLM設定」
+3. 「外部AIを有効化」にチェック、プロバイダを Ollama に
+4. URL: `http://127.0.0.1:11434/api/chat`
+
+### 環境変数（OpenAI互換API例）
+
+```bash
+export AI_COMPANY_PROVIDER=openai
+export AI_COMPANY_API_KEY=sk-...
+export AI_COMPANY_API_URL=https://api.openai.com/v1/chat/completions
+export AI_COMPANY_MODEL=gpt-4o-mini
+```
+
+設定例は `config/llm_config.example.ini` を参照（実キーはコミットしないこと）。
 
 ## シミュレーション設計
 
@@ -38,25 +74,27 @@
 - **推論速度** (inference_speed)
 - **日次収益** — 上記3指標と製品タイプから算出
 
-### ランダムイベント（約22%/日）
-
-- VC資金調達
-- 競合の新モデル
-- 学習データの偏り指摘
-- GPU請求の増加
-- 技術ブログで好評
-- 学習フェーズの加速
+チャットの system プロンプトにも精度・安全性が反映されます。
 
 ## プロジェクト構成
 
 ```
 ai-company/
 ├── project.godot
-├── scenes/main.tscn       # UI一式
+├── config/llm_config.example.ini
+├── scenes/
+│   ├── main.tscn
+│   ├── chat_demo.tscn      # 製品デモUI
+│   └── llm_settings.tscn   # API設定ダイアログ
 └── scripts/
-    ├── game.gd            # Autoload: 会社状態・日次処理
-    ├── ai_project.gd      # 架空AIプロジェクト
-    └── main.gd            # UI更新
+    ├── game.gd
+    ├── ai_project.gd
+    ├── main.gd
+    ├── llm_config.gd       # Autoload: 設定読み書き
+    ├── llm_client.gd       # Autoload: HTTP + フォールバック
+    ├── content_filter.gd   # 入出力フィルタ
+    ├── chat_demo.gd
+    └── llm_settings.gd
 ```
 
 ## 拡張候補

@@ -19,9 +19,12 @@ extends Control
 @onready var vision_btn: Button = $Margin/Root/Actions/VisionBtn
 @onready var recommend_btn: Button = $Margin/Root/Actions/RecommendBtn
 @onready var cancel_btn: Button = $Margin/Root/Actions/CancelBtn
+@onready var demo_btn: Button = $Margin/Root/Actions/DemoBtn
+@onready var chat_demo: CanvasLayer = $ChatDemo
 
 
 func _ready() -> void:
+	LlmClient.reset_session()
 	Game.state_changed.connect(_refresh_ui)
 	Game.log_added.connect(func(_m): _refresh_log())
 	_connect_buttons()
@@ -36,6 +39,14 @@ func _connect_buttons() -> void:
 	vision_btn.pressed.connect(func(): Game.start_project(AIProject.Type.VISION))
 	recommend_btn.pressed.connect(func(): Game.start_project(AIProject.Type.RECOMMEND))
 	cancel_btn.pressed.connect(Game.cancel_project)
+	demo_btn.pressed.connect(_open_chat_demo)
+
+
+func _open_chat_demo() -> void:
+	var llm_products := Game.get_launched_llm_products()
+	if llm_products.is_empty():
+		return
+	chat_demo.open_demo(llm_products)
 
 
 func _refresh_ui() -> void:
@@ -60,6 +71,8 @@ func _refresh_ui() -> void:
 	products_list.clear()
 	for product in Game.launched_products:
 		products_list.add_item(product.get_summary())
+
+	demo_btn.disabled = Game.get_launched_llm_products().is_empty()
 
 	_refresh_log()
 

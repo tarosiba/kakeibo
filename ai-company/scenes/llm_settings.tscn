@@ -1,0 +1,109 @@
+[gd_scene load_steps=2 format=3 uid="uid://llm_settings"]
+
+[ext_resource type="Script" path="res://scripts/llm_settings.gd" id="1"]
+
+[node name="LlmSettings" type="AcceptDialog"]
+size = Vector2i(520, 420)
+script = ExtResource("1")
+
+[node name="Margin" type="MarginContainer" parent="."]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 512.0
+offset_bottom = 372.0
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Grid" type="GridContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="EnabledLabel" type="Label" parent="Margin/Grid"]
+layout_mode = 2
+text = "外部AIを有効化"
+
+[node name="EnabledCheck" type="CheckBox" parent="Margin/Grid"]
+layout_mode = 2
+
+[node name="ProviderLabel" type="Label" parent="Margin/Grid"]
+layout_mode = 2
+text = "プロバイダ"
+
+[node name="ProviderOption" type="OptionButton" parent="Margin/Grid"]
+layout_mode = 2
+
+[node name="UrlLabel" type="Label" parent="Margin/Grid"]
+layout_mode = 2
+text = "API URL"
+
+[node name="UrlEdit" type="LineEdit" parent="Margin/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "http://127.0.0.1:11434/api/chat"
+
+[node name="ModelLabel" type="Label" parent="Margin/Grid"]
+layout_mode = 2
+text = "モデル名"
+
+[node name="ModelEdit" type="LineEdit" parent="Margin/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "llama3.2"
+
+[node name="KeyLabel" type="Label" parent="Margin/Grid"]
+layout_mode = 2
+text = "APIキー（任意）"
+
+[node name="KeyEdit" type="LineEdit" parent="Margin/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+secret = true
+placeholder_text = "user://config.cfg に保存"
+
+[node name="MaxReqLabel" type="Label" parent="Margin/Grid"]
+layout_mode = 2
+text = "1プレイ上限"
+
+[node name="MaxReqSpin" type="SpinBox" parent="Margin/Grid"]
+layout_mode = 2
+min_value = 1.0
+max_value = 100.0
+value = 15.0
+
+[node name="TimeoutLabel" type="Label" parent="Margin/Grid"]
+layout_mode = 2
+text = "タイムアウト(秒)"
+
+[node name="TimeoutSpin" type="SpinBox" parent="Margin/Grid"]
+layout_mode = 2
+min_value = 5.0
+max_value = 120.0
+value = 30.0
+
+[node name="FilterLabel" type="Label" parent="Margin/Grid"]
+layout_mode = 2
+text = "出力フィルタ"
+
+[node name="FilterCheck" type="CheckBox" parent="Margin/Grid"]
+layout_mode = 2
+button_pressed = true
+
+[node name="FamilyLabel" type="Label" parent="Margin/Grid"]
+layout_mode = 2
+text = "全年齢向けモード"
+
+[node name="FamilyCheck" type="CheckBox" parent="Margin/Grid"]
+layout_mode = 2
+button_pressed = true
+
+[node name="EnvHint" type="Label" parent="Margin/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/line_spacing = 4
+text = "環境変数でも上書き可"
+autowrap_mode = 3
