@@ -1,7 +1,9 @@
-# Sunset Drive — OutRun風レトロレース
+# Sunset Drive — OutRun風レトロレース（ブラウザ版）
 
 ブラウザでそのまま遊べる、OutRun風の疑似3Dドライビングゲームです。  
 のんびり走行を想定した低速設定で、周囲の交通は車1台・バイク1台のみです。
+
+> **Godot 4 でプレイする場合** → [`../outrun-godot/`](../outrun-godot/) を参照してください。
 
 ## 遊び方
 
