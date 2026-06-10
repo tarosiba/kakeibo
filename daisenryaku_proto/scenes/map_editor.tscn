@@ -1,0 +1,75 @@
+[gd_scene load_steps=3 format=3 uid="uid://map_editor_scene"]
+
+[ext_resource type="Script" path="res://scripts/hex_map.gd" id="1_hex_map"]
+[ext_resource type="Script" path="res://scripts/map_editor.gd" id="2_map_editor"]
+
+[node name="MapEditor" type="Node"]
+script = ExtResource("2_map_editor")
+
+[node name="HexMap" type="Node2D" parent="."]
+position = Vector2(260, 90)
+script = ExtResource("1_hex_map")
+
+[node name="Tiles" type="Node2D" parent="HexMap"]
+
+[node name="Units" type="Node2D" parent="HexMap"]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="LeftPanel" type="PanelContainer" parent="UI"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 240.0
+offset_bottom = 700.0
+
+[node name="LeftVBox" type="VBoxContainer" parent="UI/LeftPanel"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UI/LeftPanel/LeftVBox"]
+layout_mode = 2
+text = "マップエディタ"
+
+[node name="ToolLabel" type="Label" parent="UI/LeftPanel/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "選択ツール: 平原"
+
+[node name="ToolButtons" type="VBoxContainer" parent="UI/LeftPanel/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ActionSpacer" type="Control" parent="UI/LeftPanel/LeftVBox"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="LoadDefaultButton" type="Button" parent="UI/LeftPanel/LeftVBox"]
+layout_mode = 2
+text = "map_01 読込"
+
+[node name="SaveButton" type="Button" parent="UI/LeftPanel/LeftVBox"]
+layout_mode = 2
+text = "保存"
+
+[node name="TestButton" type="Button" parent="UI/LeftPanel/LeftVBox"]
+layout_mode = 2
+text = "テストプレイ"
+
+[node name="BackButton" type="Button" parent="UI/LeftPanel/LeftVBox"]
+layout_mode = 2
+text = "メニューへ戻る"
+
+[node name="TopPanel" type="PanelContainer" parent="UI"]
+offset_left = 250.0
+offset_top = 8.0
+offset_right = 1010.0
+offset_bottom = 72.0
+
+[node name="EditorStatusLabel" type="Label" parent="UI/TopPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "左クリックで配置 / 右クリックで消去"
+
+[connection signal="pressed" from="UI/LeftPanel/LeftVBox/LoadDefaultButton" to="." method="_on_load_default_pressed"]
+[connection signal="pressed" from="UI/LeftPanel/LeftVBox/SaveButton" to="." method="_on_save_pressed"]
+[connection signal="pressed" from="UI/LeftPanel/LeftVBox/TestButton" to="." method="_on_test_pressed"]
+[connection signal="pressed" from="UI/LeftPanel/LeftVBox/BackButton" to="." method="_on_back_pressed"]

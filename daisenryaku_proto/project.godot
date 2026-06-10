@@ -8,9 +8,13 @@ config_version=5
 
 config/name="Daisenryaku Proto"
 config/description="Minimal hex-map strategy prototype (Godot 4)"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/boot.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+GameSession="*res://scripts/game_session.gd"
 
 [display]
 

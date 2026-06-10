@@ -30,6 +30,7 @@ const ENEMY_ACTION_DELAY: float = 0.45
 @onready var production_buttons: VBoxContainer = %ProductionButtons
 @onready var end_turn_button: Button = %EndTurnButton
 @onready var next_unit_button: Button = %NextUnitButton
+@onready var menu_button: Button = $"../UI/MenuButton"
 
 var state: State = State.IDLE
 var turn_phase: TurnPhase = TurnPhase.PLAYER
@@ -48,8 +49,13 @@ func _ready() -> void:
 	hex_map.tile_unhovered.connect(_on_tile_unhovered)
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	next_unit_button.pressed.connect(_select_next_available_unit)
+	menu_button.pressed.connect(_on_menu_pressed)
 	production_panel.visible = false
 	_start_player_turn()
+
+
+func _on_menu_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/boot.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -67,7 +73,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_clear_selection()
 
 
-func _on_tile_clicked(tile: HexTile) -> void:
+func _on_tile_clicked(tile: HexTile, mouse_button: int = MOUSE_BUTTON_LEFT) -> void:
+	if mouse_button != MOUSE_BUTTON_LEFT:
+		return
 	if game_result != GameResult.NONE or turn_phase != TurnPhase.PLAYER or _enemy_turn_running:
 		return
 

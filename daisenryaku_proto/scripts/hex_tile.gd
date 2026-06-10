@@ -1,7 +1,7 @@
 class_name HexTile
 extends Area2D
 
-signal clicked(tile: HexTile)
+signal clicked(tile: HexTile, mouse_button: int)
 signal hovered(tile: HexTile)
 signal unhovered(tile: HexTile)
 
@@ -11,17 +11,18 @@ signal unhovered(tile: HexTile)
 var unit: Unit = null
 var base_info: BaseInfo = null
 
+@onready var terrain_sprite: Sprite2D = $TerrainSprite
 @onready var polygon: Polygon2D = $Polygon2D
 @onready var highlight: Polygon2D = $Highlight
-@onready var base_marker: Polygon2D = $BaseMarker
-@onready var base_label: Label = $BaseLabel
+@onready var base_sprite: Sprite2D = $BaseSprite
 @onready var damage_label: Label = $DamageLabel
 
 
 func _ready() -> void:
 	input_pickable = true
 	monitoring = true
-	_apply_terrain_color()
+	polygon.visible = false
+	_apply_terrain_visual()
 	highlight.visible = false
 	_update_base_display()
 	set_damage_preview("")
@@ -34,7 +35,7 @@ func setup(tile_coord: Vector2i, tile_terrain: Terrain.Type) -> void:
 	coord = tile_coord
 	terrain = tile_terrain
 	if is_node_ready():
-		_apply_terrain_color()
+		_apply_terrain_visual()
 		_update_base_display()
 
 
@@ -46,18 +47,15 @@ func set_base(info: BaseInfo) -> void:
 
 func _update_base_display() -> void:
 	if base_info == null:
-		base_marker.visible = false
-		base_label.visible = false
+		base_sprite.visible = false
 		return
 
-	base_marker.visible = true
-	base_marker.color = base_info.get_owner_color()
-	base_label.visible = true
-	base_label.text = "■"
+	base_sprite.visible = true
+	base_sprite.texture = TileAtlas.get_base_texture(base_info.owner)
 
 
-func _apply_terrain_color() -> void:
-	polygon.color = Terrain.COLORS.get(terrain, Color.GRAY)
+func _apply_terrain_visual() -> void:
+	terrain_sprite.texture = TileAtlas.get_terrain_texture(terrain)
 
 
 func set_damage_preview(text: String) -> void:
@@ -78,6 +76,9 @@ func set_highlight(mode: String) -> void:
 			highlight.visible = true
 		"base":
 			highlight.color = Color(0.95, 0.75, 0.20, 0.55)
+			highlight.visible = true
+		"editor":
+			highlight.color = Color(0.95, 0.95, 1.0, 0.45)
 			highlight.visible = true
 		_:
 			highlight.visible = false
@@ -104,7 +105,5 @@ func _on_input_event(
 	event: InputEvent,
 	_shape_idx: int,
 ) -> void:
-	if event is InputEventMouseButton \
-			and event.pressed \
-			and event.button_index == MOUSE_BUTTON_LEFT:
-		clicked.emit(self)
+	if event is InputEventMouseButton and event.pressed:
+		clicked.emit(self, event.button_index)

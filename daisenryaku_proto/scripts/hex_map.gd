@@ -1,7 +1,7 @@
 class_name HexMap
 extends Node2D
 
-signal tile_clicked(tile: HexTile)
+signal tile_clicked(tile: HexTile, mouse_button: int)
 signal tile_hovered(tile: HexTile)
 signal tile_unhovered(tile: HexTile)
 
@@ -20,11 +20,30 @@ var enemy_funds: int = 0
 
 
 func _ready() -> void:
-	player_funds = Map01.INITIAL_PLAYER_FUNDS
-	enemy_funds = Map01.INITIAL_ENEMY_FUNDS
-	generate_map(Map01.DATA)
-	_spawn_bases()
-	_spawn_starting_units()
+	setup_map(GameSession.get_map_data())
+
+
+func setup_map(map_data: MapData) -> void:
+	_clear_map()
+	player_funds = map_data.player_funds
+	enemy_funds = map_data.enemy_funds
+	generate_map(map_data.terrain)
+	_spawn_bases_from_data(map_data.bases)
+	_spawn_units_from_data(map_data.player_units, Unit.Faction.PLAYER)
+	_spawn_units_from_data(map_data.enemy_units, Unit.Faction.ENEMY)
+
+
+func _clear_map() -> void:
+	for child: Node in tiles_root.get_children():
+		child.queue_free()
+	for child: Node in units_root.get_children():
+		child.queue_free()
+	tiles.clear()
+	units.clear()
+
+
+func rebuild_from_data(map_data: MapData) -> void:
+	setup_map(map_data)
 
 
 func generate_map(map_data: Array) -> void:
@@ -45,8 +64,8 @@ func generate_map(map_data: Array) -> void:
 			tiles[coord] = tile
 
 
-func _spawn_bases() -> void:
-	for config: Dictionary in Map01.BASES:
+func _spawn_bases_from_data(base_entries: Array) -> void:
+	for config: Dictionary in base_entries:
 		var coord: Vector2i = config.coord
 		if not tiles.has(coord):
 			push_error("Missing tile for base: %s" % coord)
@@ -59,11 +78,9 @@ func _spawn_bases() -> void:
 		tiles[coord].set_base(info)
 
 
-func _spawn_starting_units() -> void:
-	for config: Dictionary in Map01.PLAYER_UNITS:
-		_spawn_unit_from_config(config, Unit.Faction.PLAYER)
-	for config: Dictionary in Map01.ENEMY_UNITS:
-		_spawn_unit_from_config(config, Unit.Faction.ENEMY)
+func _spawn_units_from_data(unit_entries: Array, faction: Unit.Faction) -> void:
+	for config: Dictionary in unit_entries:
+		_spawn_unit_from_config(config, faction)
 
 
 func _spawn_unit_from_config(config: Dictionary, faction: Unit.Faction) -> Unit:
@@ -477,8 +494,8 @@ func _format_tile_preview(preview: Dictionary) -> String:
 	return "%d" % preview.outgoing_damage
 
 
-func _on_tile_clicked(tile: HexTile) -> void:
-	tile_clicked.emit(tile)
+func _on_tile_clicked(tile: HexTile, mouse_button: int) -> void:
+	tile_clicked.emit(tile, mouse_button)
 
 
 func _on_tile_hovered(tile: HexTile) -> void:
