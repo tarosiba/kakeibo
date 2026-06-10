@@ -6,6 +6,14 @@ enum Faction {
 	ENEMY,
 }
 
+enum UnitType {
+	TANK,
+	INFANTRY,
+	ARTILLERY,
+}
+
+@export var unit_name: String = "ユニット"
+@export var unit_type: UnitType = UnitType.INFANTRY
 @export var move_range: int = 4
 @export var attack_range: int = 1
 @export var attack_power: int = 4
@@ -49,18 +57,47 @@ func _update_visual() -> void:
 
 
 func _draw() -> void:
-	var body := Rect2(-10.0, -10.0, 20.0, 20.0)
-	draw_rect(body, faction_color)
-	draw_rect(body, Color.BLACK, false, 2.0)
-	draw_line(Vector2(-6.0, 0.0), Vector2(6.0, 0.0), Color.WHITE, 2.0)
-	draw_line(Vector2(0.0, -6.0), Vector2(0.0, 6.0), Color.WHITE, 2.0)
+	match unit_type:
+		UnitType.TANK:
+			_draw_tank()
+		UnitType.ARTILLERY:
+			_draw_artillery()
+		_:
+			_draw_infantry()
 	_draw_hp_bar()
 
 
+func _draw_tank() -> void:
+	var body := Rect2(-12.0, -10.0, 24.0, 20.0)
+	draw_rect(body, faction_color)
+	draw_rect(body, Color.BLACK, false, 2.0)
+	draw_rect(Rect2(-8.0, -14.0, 10.0, 6.0), faction_color.lightened(0.15))
+	draw_rect(Rect2(-8.0, -14.0, 10.0, 6.0), Color.BLACK, false, 1.0)
+
+
+func _draw_infantry() -> void:
+	var body := Rect2(-8.0, -8.0, 16.0, 16.0)
+	draw_rect(body, faction_color)
+	draw_rect(body, Color.BLACK, false, 2.0)
+	draw_circle(Vector2.ZERO, 3.0, Color.WHITE)
+
+
+func _draw_artillery() -> void:
+	var points := PackedVector2Array([
+		Vector2(0.0, -10.0),
+		Vector2(10.0, 0.0),
+		Vector2(0.0, 10.0),
+		Vector2(-10.0, 0.0),
+	])
+	draw_colored_polygon(points, faction_color)
+	draw_polyline(points + PackedVector2Array([points[0]]), Color.BLACK, 2.0)
+	draw_line(Vector2(0.0, 0.0), Vector2(8.0, -4.0), Color.WHITE, 2.0)
+
+
 func _draw_hp_bar() -> void:
-	var bar_width: float = 22.0
+	var bar_width: float = 24.0 if unit_type == UnitType.TANK else 22.0
 	var bar_height: float = 4.0
-	var bar_y: float = -18.0
+	var bar_y: float = -20.0 if unit_type == UnitType.TANK else -18.0
 	var ratio: float = float(hp) / float(max_hp)
 
 	draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width, bar_height), Color(0.15, 0.15, 0.15))

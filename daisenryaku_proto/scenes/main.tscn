@@ -21,7 +21,7 @@ script = ExtResource("2_game_manager")
 [node name="Panel" type="PanelContainer" parent="UI"]
 offset_left = 8.0
 offset_top = 8.0
-offset_right = 820.0
+offset_right = 700.0
 offset_bottom = 120.0
 
 [node name="VBox" type="VBoxContainer" parent="UI/Panel"]
@@ -32,6 +32,12 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "ターン 1 - プレイヤー"
 
+[node name="UnitsStatusLabel" type="Label" parent="UI/Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.85, 1)
+text = "自軍: 行動可能 0 / 0"
+
 [node name="StatusLabel" type="Label" parent="UI/Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -41,12 +47,37 @@ text = "Loading..."
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
-text = "赤マス数字=与/被ダメ  |  ホバーで詳細予測  |  青=移動  赤=攻撃  黄=選択  灰=行動済み"
+text = "Tab/次へ=ユニット切替  |  右リスト=選択  |  1体1回移動or攻撃"
 
 [node name="EndTurnButton" type="Button" parent="UI"]
 unique_name_in_owner = true
-offset_left = 840.0
+offset_left = 720.0
 offset_top = 12.0
-offset_right = 1000.0
+offset_right = 860.0
 offset_bottom = 52.0
 text = "ターン終了"
+
+[node name="NextUnitButton" type="Button" parent="UI"]
+unique_name_in_owner = true
+offset_left = 720.0
+offset_top = 60.0
+offset_right = 860.0
+offset_bottom = 100.0
+text = "次のユニット"
+
+[node name="RosterPanel" type="PanelContainer" parent="UI"]
+offset_left = 880.0
+offset_top = 8.0
+offset_right = 1010.0
+offset_bottom = 220.0
+
+[node name="RosterVBox" type="VBoxContainer" parent="UI/RosterPanel"]
+layout_mode = 2
+
+[node name="RosterTitle" type="Label" parent="UI/RosterPanel/RosterVBox"]
+layout_mode = 2
+text = "自軍ユニット"
+
+[node name="UnitRosterVBox" type="VBoxContainer" parent="UI/RosterPanel/RosterVBox"]
+unique_name_in_owner = true
+layout_mode = 2

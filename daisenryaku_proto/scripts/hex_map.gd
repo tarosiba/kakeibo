@@ -41,39 +41,24 @@ func generate_map(map_data: Array) -> void:
 
 
 func _spawn_starting_units() -> void:
-	_spawn_player_unit(Map01.PLAYER_START)
-	_spawn_enemy_unit(Map01.ENEMY_START)
-	_spawn_enemy_unit(Map01.ENEMY_NEAR, 8, 2, 1)
+	for config: Dictionary in Map01.PLAYER_UNITS:
+		_spawn_unit_from_config(config, Unit.Faction.PLAYER)
+	for config: Dictionary in Map01.ENEMY_UNITS:
+		_spawn_unit_from_config(config, Unit.Faction.ENEMY)
 
 
-func _spawn_player_unit(coord: Vector2i) -> Unit:
+func _spawn_unit_from_config(config: Dictionary, faction: Unit.Faction) -> Unit:
 	return spawn_unit(
-		coord,
-		Unit.Faction.PLAYER,
-		Color(0.85, 0.20, 0.20),
-		4,
-		1,
-		4,
-		1,
-		10,
-	)
-
-
-func _spawn_enemy_unit(
-	coord: Vector2i,
-	hp: int = 8,
-	attack_power: int = 3,
-	defense: int = 1,
-) -> Unit:
-	return spawn_unit(
-		coord,
-		Unit.Faction.ENEMY,
-		Color(0.25, 0.45, 0.90),
-		3,
-		1,
-		attack_power,
-		defense,
-		hp,
+		config.coord,
+		faction,
+		config.color,
+		config.move,
+		config.range,
+		config.atk,
+		config.def,
+		config.hp,
+		config.name,
+		config.type,
 	)
 
 
@@ -86,6 +71,8 @@ func spawn_unit(
 	attack_power: int = 3,
 	defense: int = 1,
 	max_hp: int = 10,
+	unit_name: String = "ユニット",
+	unit_type: Unit.UnitType = Unit.UnitType.INFANTRY,
 ) -> Unit:
 	if not tiles.has(coord):
 		push_error("Cannot spawn unit at missing tile: %s" % coord)
@@ -97,6 +84,8 @@ func spawn_unit(
 		return null
 
 	var unit: Unit = UNIT_SCENE.instantiate()
+	unit.unit_name = unit_name
+	unit.unit_type = unit_type
 	unit.faction = faction
 	unit.faction_color = color
 	unit.move_range = move_range
@@ -123,6 +112,18 @@ func get_units_by_faction(faction: Unit.Faction) -> Array[Unit]:
 		if unit.is_alive() and unit.faction == faction:
 			result.append(unit)
 	return result
+
+
+func get_idle_units_by_faction(faction: Unit.Faction) -> Array[Unit]:
+	var result: Array[Unit] = []
+	for unit: Unit in units:
+		if unit.is_alive() and unit.faction == faction and not unit.has_acted:
+			result.append(unit)
+	return result
+
+
+func count_idle_units(faction: Unit.Faction) -> int:
+	return get_idle_units_by_faction(faction).size()
 
 
 func reset_all_unit_turns() -> void:

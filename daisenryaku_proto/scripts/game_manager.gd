@@ -21,7 +21,10 @@ const ENEMY_ACTION_DELAY: float = 0.45
 @onready var hex_map: HexMap = $"../HexMap"
 @onready var status_label: Label = %StatusLabel
 @onready var turn_label: Label = %TurnLabel
+@onready var units_status_label: Label = %UnitsStatusLabel
+@onready var unit_roster: VBoxContainer = %UnitRosterVBox
 @onready var end_turn_button: Button = %EndTurnButton
+@onready var next_unit_button: Button = %NextUnitButton
 
 var state: State = State.IDLE
 var turn_phase: TurnPhase = TurnPhase.PLAYER
@@ -38,12 +41,18 @@ func _ready() -> void:
 	hex_map.tile_hovered.connect(_on_tile_hovered)
 	hex_map.tile_unhovered.connect(_on_tile_unhovered)
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
+	next_unit_button.pressed.connect(_select_next_available_unit)
 	_start_player_turn()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if turn_phase != TurnPhase.PLAYER or _enemy_turn_running:
+	if game_result != GameResult.NONE or turn_phase != TurnPhase.PLAYER or _enemy_turn_running:
 		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_TAB:
+			_select_next_available_unit()
+			return
 
 	if event is InputEventMouseButton \
 			and event.pressed \
@@ -80,7 +89,7 @@ func _on_tile_clicked(tile: HexTile) -> void:
 
 func _select_unit(unit: Unit, tile: HexTile) -> void:
 	if unit.has_acted:
-		_update_status("このユニットは行動済みです。ターン終了を押してください。")
+		_update_status("%s は行動済みです。別のユニットを選んでください。" % unit.unit_name)
 		return
 
 	_clear_selection()
@@ -92,14 +101,36 @@ func _select_unit(unit: Unit, tile: HexTile) -> void:
 	hex_map.show_attackable(attack_targets)
 	hex_map.show_attack_predictions(unit, attack_targets)
 	hex_map.show_selected(tile)
-	_update_status(
-		"選択中: (%d, %d)  HP %d/%d  赤マスに数字=与ダメ/被ダメ  マウスを乗せると詳細" % [
-			unit.coord.x,
-			unit.coord.y,
-			unit.hp,
-			unit.max_hp,
-		],
-	)
+	_refresh_unit_roster()
+	_update_status(_format_selection_message(unit))
+
+
+func _select_next_available_unit() -> void:
+	var idle_units: Array[Unit] = hex_map.get_idle_units_by_faction(Unit.Faction.PLAYER)
+	if idle_units.is_empty():
+		_clear_selection()
+		_update_status("全ユニット行動済み。ターン終了を押してください。")
+		return
+
+	var next_unit: Unit = idle_units[0]
+	if selected_unit != null:
+		var current_index: int = idle_units.find(selected_unit)
+		if current_index >= 0:
+			next_unit = idle_units[(current_index + 1) % idle_units.size()]
+
+	var tile: HexTile = hex_map.get_tile(next_unit.coord)
+	_select_unit(next_unit, tile)
+
+
+func _select_unit_from_roster(unit: Unit) -> void:
+	if game_result != GameResult.NONE or turn_phase != TurnPhase.PLAYER:
+		return
+
+	var tile: HexTile = hex_map.get_tile(unit.coord)
+	if tile == null:
+		return
+
+	_select_unit(unit, tile)
 
 
 func _execute_move(tile: HexTile) -> void:
@@ -109,7 +140,8 @@ func _execute_move(tile: HexTile) -> void:
 
 	selected_unit.mark_acted()
 	_clear_selection()
-	_update_status("移動しました。このユニットはターン終了まで待機します。")
+	_refresh_unit_roster()
+	_update_status(_format_post_action_message("移動しました。"))
 
 
 func _execute_attack(tile: HexTile) -> void:
@@ -123,7 +155,8 @@ func _execute_attack(tile: HexTile) -> void:
 	if is_instance_valid(attacker) and attacker.is_alive():
 		attacker.mark_acted()
 	_clear_selection()
-	_update_status(_format_attack_message(result, defender))
+	_refresh_unit_roster()
+	_update_status(_format_post_action_message(_format_attack_message(result, defender)))
 	if _check_victory():
 		return
 
@@ -140,8 +173,10 @@ func _start_player_turn() -> void:
 	turn_phase = TurnPhase.PLAYER
 	hex_map.reset_all_unit_turns()
 	end_turn_button.disabled = false
+	next_unit_button.disabled = false
 	_update_turn_label()
-	_update_status("プレイヤーターンです。ユニットを選んで移動か攻撃を行ってください。")
+	_refresh_unit_roster()
+	_update_status(_format_turn_start_message())
 	_check_victory()
 
 
@@ -152,7 +187,9 @@ func _start_enemy_turn() -> void:
 
 	turn_phase = TurnPhase.ENEMY
 	end_turn_button.disabled = true
+	next_unit_button.disabled = true
 	_update_turn_label()
+	_refresh_unit_roster()
 	_update_status("敵ターン...")
 	_run_enemy_turn()
 
@@ -173,14 +210,20 @@ func _run_enemy_turn() -> void:
 				var victim: Unit = target_tile.unit
 				var result: Dictionary = hex_map.attack_unit(enemy, target_tile)
 				if result.success:
-					_update_status(_format_enemy_attack_message(result, victim))
+					_update_status(
+						"%s が攻撃! %s" % [
+							enemy.unit_name,
+							_format_enemy_attack_message(result, victim),
+						],
+					)
+					_refresh_unit_roster()
 					if _check_victory():
 						_enemy_turn_running = false
 						return
 			"move":
 				var move_tile: HexTile = action.target
 				hex_map.move_unit(enemy, move_tile)
-				_update_status("敵が移動しました。")
+				_update_status("%s が移動しました。" % enemy.unit_name)
 
 		if is_instance_valid(enemy) and enemy.is_alive():
 			enemy.mark_acted()
@@ -208,7 +251,9 @@ func _check_victory() -> bool:
 func _on_player_victory() -> void:
 	game_result = GameResult.VICTORY
 	end_turn_button.disabled = true
+	next_unit_button.disabled = true
 	_clear_selection()
+	_refresh_unit_roster()
 	_update_turn_label()
 	_update_status("勝利! 敵を全滅させました。")
 
@@ -216,9 +261,72 @@ func _on_player_victory() -> void:
 func _on_player_defeat() -> void:
 	game_result = GameResult.DEFEAT
 	end_turn_button.disabled = true
+	next_unit_button.disabled = true
 	_clear_selection()
+	_refresh_unit_roster()
 	_update_turn_label()
 	_update_status("敗北... 自軍が全滅しました。")
+
+
+func _refresh_unit_roster() -> void:
+	for child: Node in unit_roster.get_children():
+		child.queue_free()
+
+	var player_units: Array[Unit] = hex_map.get_units_by_faction(Unit.Faction.PLAYER)
+	var idle_count: int = hex_map.count_idle_units(Unit.Faction.PLAYER)
+	var total_count: int = player_units.size()
+
+	if total_count == 0:
+		units_status_label.text = "自軍ユニット: なし"
+		return
+
+	units_status_label.text = "自軍: 行動可能 %d / %d" % [idle_count, total_count]
+
+	for unit: Unit in player_units:
+		var button := Button.new()
+		var status_mark: String = " [待機]" if unit.has_acted else ""
+		var selected_mark: String = " <<" if unit == selected_unit else ""
+		button.text = "%s HP %d/%d%s%s" % [
+			unit.unit_name,
+			unit.hp,
+			unit.max_hp,
+			status_mark,
+			selected_mark,
+		]
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.disabled = unit.has_acted or game_result != GameResult.NONE or turn_phase != TurnPhase.PLAYER
+		button.pressed.connect(_select_unit_from_roster.bind(unit))
+		unit_roster.add_child(button)
+
+
+func _format_turn_start_message() -> String:
+	var idle_count: int = hex_map.count_idle_units(Unit.Faction.PLAYER)
+	if idle_count == 0:
+		return "プレイヤーターンです。全ユニット行動済みならターン終了してください。"
+	return "プレイヤーターンです。%d 体が行動可能。クリックか Tab で選択。" % idle_count
+
+
+func _format_selection_message(unit: Unit) -> String:
+	return (
+		"[%s] (%d, %d)  HP %d/%d  移%d/攻%d/射%d  赤数字=与/被ダメ"
+		% [
+			unit.unit_name,
+			unit.coord.x,
+			unit.coord.y,
+			unit.hp,
+			unit.max_hp,
+			unit.move_range,
+			unit.attack_power,
+			unit.attack_range,
+		]
+	)
+
+
+func _format_post_action_message(action_text: String) -> String:
+	var idle_count: int = hex_map.count_idle_units(Unit.Faction.PLAYER)
+	if idle_count == 0:
+		return "%s 全ユニット行動済み。ターン終了を押してください。" % action_text
+	return "%s 残り %d 体が行動可能。" % [action_text, idle_count]
 
 
 func _on_tile_hovered(tile: HexTile) -> void:
@@ -233,14 +341,7 @@ func _on_tile_unhovered(_tile: HexTile) -> void:
 	if game_result != GameResult.NONE or state != State.UNIT_SELECTED or selected_unit == null:
 		return
 
-	_update_status(
-		"選択中: (%d, %d)  HP %d/%d  赤マスに数字=与ダメ/被ダメ  マウスを乗せると詳細" % [
-			selected_unit.coord.x,
-			selected_unit.coord.y,
-			selected_unit.hp,
-			selected_unit.max_hp,
-		],
-	)
+	_update_status(_format_selection_message(selected_unit))
 
 
 func _show_attack_prediction(tile: HexTile) -> void:
@@ -248,7 +349,12 @@ func _show_attack_prediction(tile: HexTile) -> void:
 	if preview.is_empty():
 		return
 
-	_update_status(_format_prediction_message(preview))
+	_update_status(
+		"[%s] %s" % [
+			selected_unit.unit_name,
+			_format_prediction_message(preview),
+		],
+	)
 
 
 func _format_prediction_message(preview: Dictionary) -> String:
@@ -282,7 +388,8 @@ func _show_enemy_info(tile: HexTile) -> void:
 	var enemy: Unit = tile.unit
 	if state == State.UNIT_SELECTED:
 		_update_status(
-			"射程外の敵: (%d, %d)  HP %d/%d  防御 %d" % [
+			"[%s] 射程外: (%d, %d)  HP %d/%d  防御 %d" % [
+				enemy.unit_name,
 				tile.coord.x,
 				tile.coord.y,
 				enemy.hp,
@@ -292,7 +399,8 @@ func _show_enemy_info(tile: HexTile) -> void:
 		)
 	else:
 		_update_status(
-			"敵: (%d, %d)  HP %d/%d" % [
+			"[%s]: (%d, %d)  HP %d/%d" % [
+				enemy.unit_name,
 				tile.coord.x,
 				tile.coord.y,
 				enemy.hp,
@@ -311,6 +419,7 @@ func _clear_selection() -> void:
 	reachable.clear()
 	attack_targets.clear()
 	hex_map.clear_highlights()
+	_refresh_unit_roster()
 
 
 func _update_turn_label() -> void:
@@ -334,11 +443,12 @@ func _format_attack_message(result: Dictionary, defender: Unit) -> String:
 	if result.killed:
 		message = "攻撃! %d ダメージ → %s を撃破!" % [
 			result.damage,
-			_faction_name(defender.faction),
+			defender.unit_name,
 		]
 	else:
-		message = "攻撃! %d ダメージ → 敵 HP %d" % [
+		message = "攻撃! %d ダメージ → %s HP %d" % [
 			result.damage,
+			defender.unit_name,
 			result.defender_hp,
 		]
 
@@ -348,10 +458,11 @@ func _format_attack_message(result: Dictionary, defender: Unit) -> String:
 func _format_enemy_attack_message(result: Dictionary, victim: Unit) -> String:
 	var message: String
 	if result.killed:
-		message = "敵が攻撃! %d ダメージ → 自軍ユニットを撃破!" % result.damage
+		message = "%d ダメージ → %s を撃破!" % [result.damage, victim.unit_name]
 	else:
-		message = "敵が攻撃! %d ダメージ → 自軍 HP %d" % [
+		message = "%d ダメージ → %s HP %d" % [
 			result.damage,
+			victim.unit_name,
 			result.defender_hp,
 		]
 
@@ -367,24 +478,14 @@ func _format_counter_message(counter: Dictionary) -> String:
 	if counter.killed:
 		return "  /  反撃! %d ダメージ → %s を撃破!" % [
 			counter.damage,
-			_faction_name(counter_victim.faction),
+			counter_victim.unit_name,
 		]
 
 	return "  /  反撃! %d ダメージ → %s HP %d" % [
 		counter.damage,
-		_faction_name(counter_victim.faction),
+		counter_victim.unit_name,
 		counter.attacker_hp,
 	]
-
-
-func _faction_name(faction: Unit.Faction) -> String:
-	match faction:
-		Unit.Faction.PLAYER:
-			return "自軍"
-		Unit.Faction.ENEMY:
-			return "敵"
-		_:
-			return "ユニット"
 
 
 func _terrain_name(terrain: Terrain.Type) -> String:
