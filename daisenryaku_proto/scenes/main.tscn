@@ -53,7 +53,7 @@ text = "Loading..."
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
-text = "セーブ=進行保存  |  続きから=メニュー  |  基地クリック=生産"
+text = "S1-3=セーブ  L1-3=ロード  |  メニューでスロット選択  |  基地=生産"
 
 [node name="EndTurnButton" type="Button" parent="UI"]
 unique_name_in_owner = true
@@ -71,13 +71,30 @@ offset_right = 860.0
 offset_bottom = 100.0
 text = "次のユニット"
 
-[node name="SaveButton" type="Button" parent="UI"]
-unique_name_in_owner = true
+[node name="SaveLoadPanel" type="PanelContainer" parent="UI"]
 offset_left = 720.0
 offset_top = 108.0
 offset_right = 860.0
-offset_bottom = 148.0
-text = "セーブ"
+offset_bottom = 196.0
+
+[node name="SaveLoadVBox" type="VBoxContainer" parent="UI/SaveLoadPanel"]
+layout_mode = 2
+
+[node name="SaveTitle" type="Label" parent="UI/SaveLoadPanel/SaveLoadVBox"]
+layout_mode = 2
+text = "セーブ S1-3"
+
+[node name="SaveSlotButtons" type="HBoxContainer" parent="UI/SaveLoadPanel/SaveLoadVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="LoadTitle" type="Label" parent="UI/SaveLoadPanel/SaveLoadVBox"]
+layout_mode = 2
+text = "ロード L1-3"
+
+[node name="LoadSlotButtons" type="HBoxContainer" parent="UI/SaveLoadPanel/SaveLoadVBox"]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="MenuButton" type="Button" parent="UI"]
 offset_left = 720.0
@@ -90,9 +107,9 @@ text = "メニューへ"
 unique_name_in_owner = true
 visible = false
 offset_left = 720.0
-offset_top = 156.0
+offset_top = 204.0
 offset_right = 1010.0
-offset_bottom = 344.0
+offset_bottom = 392.0
 
 [node name="ProductionVBox" type="VBoxContainer" parent="UI/ProductionPanel"]
 layout_mode = 2

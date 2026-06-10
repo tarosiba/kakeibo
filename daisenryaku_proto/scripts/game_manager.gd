@@ -31,7 +31,8 @@ const ENEMY_ACTION_DELAY: float = 0.45
 @onready var end_turn_button: Button = %EndTurnButton
 @onready var next_unit_button: Button = %NextUnitButton
 @onready var menu_button: Button = $"../UI/MenuButton"
-@onready var save_button: Button = %SaveButton
+@onready var save_slot_buttons: HBoxContainer = %SaveSlotButtons
+@onready var load_slot_buttons: HBoxContainer = %LoadSlotButtons
 
 var state: State = State.IDLE
 var turn_phase: TurnPhase = TurnPhase.PLAYER
@@ -51,7 +52,7 @@ func _ready() -> void:
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	next_unit_button.pressed.connect(_select_next_available_unit)
 	menu_button.pressed.connect(_on_menu_pressed)
-	save_button.pressed.connect(_on_save_pressed)
+	_build_save_load_buttons()
 	production_panel.visible = false
 
 	if GameSession.has_resume_save():
@@ -64,7 +65,32 @@ func _on_menu_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/boot.tscn")
 
 
-func _on_save_pressed() -> void:
+func _build_save_load_buttons() -> void:
+	for container: HBoxContainer in [save_slot_buttons, load_slot_buttons]:
+		for child: Node in container.get_children():
+			child.queue_free()
+
+	for slot in range(1, SaveGame.MAX_SLOTS + 1):
+		var save_button := Button.new()
+		save_button.text = "S%d" % slot
+		save_button.tooltip_text = SaveGame.get_slot_label(slot)
+		save_button.disabled = not _can_save()
+		save_button.pressed.connect(_on_save_slot_pressed.bind(slot))
+		save_slot_buttons.add_child(save_button)
+
+		var load_button := Button.new()
+		load_button.text = "L%d" % slot
+		load_button.tooltip_text = "スロット%dをロード" % slot
+		load_button.disabled = not _can_load_slot(slot)
+		load_button.pressed.connect(_on_load_slot_pressed.bind(slot))
+		load_slot_buttons.add_child(load_button)
+
+
+func _refresh_save_load_buttons() -> void:
+	_build_save_load_buttons()
+
+
+func _on_save_slot_pressed(slot: int) -> void:
 	if not _can_save():
 		_update_status("今はセーブできません。プレイヤーターン中のみ保存できます。")
 		return
@@ -75,11 +101,34 @@ func _on_save_pressed() -> void:
 		turn_phase,
 		game_result,
 		GameSession.map_source,
+		slot,
 	)
-	if SaveGame.save_snapshot(snapshot):
-		_update_status("セーブしました。(ターン %d)" % turn_number)
+	if SaveGame.save_snapshot(slot, snapshot):
+		_refresh_save_load_buttons()
+		_update_status("スロット%dにセーブしました。(ターン %d)" % [slot, turn_number])
 	else:
-		_update_status("セーブに失敗しました。")
+		_update_status("スロット%dへのセーブに失敗しました。" % slot)
+
+
+func _on_load_slot_pressed(slot: int) -> void:
+	if not _can_load_slot(slot):
+		_update_status("スロット%dは空です。ロードできません。" % slot)
+		return
+
+	var save_data: Dictionary = SaveGame.load(slot)
+	if save_data.is_empty():
+		_refresh_save_load_buttons()
+		_update_status("スロット%dの読み込みに失敗しました。" % slot)
+		return
+
+	_apply_save_data(save_data)
+	_update_status("スロット%dをロードしました。" % slot)
+
+
+func _can_load_slot(slot: int) -> bool:
+	return SaveGame.exists(slot) \
+			and turn_phase == TurnPhase.PLAYER \
+			and not _enemy_turn_running
 
 
 func _can_save() -> bool:
@@ -100,15 +149,24 @@ func _apply_save_data(save_data: Dictionary) -> void:
 	_update_funds_label()
 	end_turn_button.disabled = game_result != GameResult.NONE or turn_phase != TurnPhase.PLAYER
 	next_unit_button.disabled = end_turn_button.disabled
-	save_button.disabled = not _can_save()
+	_refresh_save_load_buttons()
+
+	var slot_text: String = ""
+	if GameSession.resume_slot > 0:
+		slot_text = "スロット%dの" % GameSession.resume_slot
 
 	match game_result:
 		GameResult.VICTORY:
-			_update_status("セーブデータを読み込みました。勝利状態です。")
+			_update_status("%sセーブデータを読み込みました。勝利状態です。" % slot_text)
 		GameResult.DEFEAT:
-			_update_status("セーブデータを読み込みました。敗北状態です。")
+			_update_status("%sセーブデータを読み込みました。敗北状態です。" % slot_text)
 		_:
-			_update_status("セーブデータを読み込みました。ターン %d から再開します。" % turn_number)
+			_update_status(
+				"%sセーブデータを読み込みました。ターン %d から再開します。" % [
+					slot_text,
+					turn_number,
+				],
+			)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -303,7 +361,7 @@ func _start_player_turn() -> void:
 	var income: int = hex_map.collect_income(Unit.Faction.PLAYER)
 	end_turn_button.disabled = false
 	next_unit_button.disabled = false
-	save_button.disabled = false
+	_refresh_save_load_buttons()
 	_update_turn_label()
 	_refresh_unit_roster()
 	_update_funds_label()
@@ -322,7 +380,7 @@ func _start_enemy_turn() -> void:
 	turn_phase = TurnPhase.ENEMY
 	end_turn_button.disabled = true
 	next_unit_button.disabled = true
-	save_button.disabled = true
+	_refresh_save_load_buttons()
 	_clear_selection()
 	_update_turn_label()
 	_refresh_unit_roster()
@@ -436,7 +494,7 @@ func _on_player_victory() -> void:
 	game_result = GameResult.VICTORY
 	end_turn_button.disabled = true
 	next_unit_button.disabled = true
-	save_button.disabled = true
+	_refresh_save_load_buttons()
 	_clear_selection()
 	_refresh_unit_roster()
 	_update_turn_label()
@@ -448,7 +506,7 @@ func _on_player_defeat() -> void:
 	game_result = GameResult.DEFEAT
 	end_turn_button.disabled = true
 	next_unit_button.disabled = true
-	save_button.disabled = true
+	_refresh_save_load_buttons()
 	_clear_selection()
 	_refresh_unit_roster()
 	_update_turn_label()
