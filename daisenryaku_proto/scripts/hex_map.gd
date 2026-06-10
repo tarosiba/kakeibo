@@ -37,8 +37,40 @@ func generate_map(map_data: Array) -> void:
 
 
 func _spawn_starting_units() -> void:
-	spawn_unit(Map01.PLAYER_START, Unit.Faction.PLAYER, Color(0.85, 0.20, 0.20), 4)
-	spawn_unit(Map01.ENEMY_START, Unit.Faction.ENEMY, Color(0.25, 0.45, 0.90), 3)
+	_spawn_player_unit(Map01.PLAYER_START)
+	_spawn_enemy_unit(Map01.ENEMY_START)
+	_spawn_enemy_unit(Map01.ENEMY_NEAR, 8, 2, 1)
+
+
+func _spawn_player_unit(coord: Vector2i) -> Unit:
+	return spawn_unit(
+		coord,
+		Unit.Faction.PLAYER,
+		Color(0.85, 0.20, 0.20),
+		4,
+		1,
+		4,
+		1,
+		10,
+	)
+
+
+func _spawn_enemy_unit(
+	coord: Vector2i,
+	hp: int = 8,
+	attack_power: int = 3,
+	defense: int = 1,
+) -> Unit:
+	return spawn_unit(
+		coord,
+		Unit.Faction.ENEMY,
+		Color(0.25, 0.45, 0.90),
+		3,
+		1,
+		attack_power,
+		defense,
+		hp,
+	)
 
 
 func spawn_unit(
@@ -46,6 +78,10 @@ func spawn_unit(
 	faction: Unit.Faction,
 	color: Color,
 	move_range: int,
+	attack_range: int = 1,
+	attack_power: int = 3,
+	defense: int = 1,
+	max_hp: int = 10,
 ) -> Unit:
 	if not tiles.has(coord):
 		push_error("Cannot spawn unit at missing tile: %s" % coord)
@@ -60,6 +96,11 @@ func spawn_unit(
 	unit.faction = faction
 	unit.faction_color = color
 	unit.move_range = move_range
+	unit.attack_range = attack_range
+	unit.attack_power = attack_power
+	unit.defense = defense
+	unit.max_hp = max_hp
+	unit.hp = max_hp
 	unit.coord = coord
 	unit.position = tile.position
 	tile.unit = unit
@@ -104,6 +145,55 @@ func get_reachable(from: Vector2i, move_points: int) -> Dictionary:
 	return result
 
 
+func get_attack_targets(attacker: Unit) -> Array[HexTile]:
+	var targets: Array[HexTile] = []
+
+	for coord: Vector2i in tiles.keys():
+		if HexCoord.distance(attacker.coord, coord) > attacker.attack_range:
+			continue
+
+		var tile: HexTile = tiles[coord]
+		if tile.unit == null or tile.unit.faction == attacker.faction:
+			continue
+
+		targets.append(tile)
+
+	return targets
+
+
+func attack_unit(attacker: Unit, target_tile: HexTile) -> Dictionary:
+	var defender: Unit = target_tile.unit
+	if defender == null or defender.faction == attacker.faction:
+		return {"success": false}
+
+	if HexCoord.distance(attacker.coord, target_tile.coord) > attacker.attack_range:
+		return {"success": false}
+
+	var damage: int = CombatResolver.apply_attack(attacker, defender, target_tile)
+	var killed: bool = not defender.is_alive()
+	if killed:
+		remove_unit(defender)
+
+	return {
+		"success": true,
+		"damage": damage,
+		"killed": killed,
+		"defender_hp": defender.hp,
+	}
+
+
+func remove_unit(unit: Unit) -> void:
+	if not tiles.has(unit.coord):
+		return
+
+	var tile: HexTile = tiles[unit.coord]
+	if tile.unit == unit:
+		tile.unit = null
+
+	units.erase(unit)
+	unit.queue_free()
+
+
 func move_unit(unit: Unit, target: HexTile) -> bool:
 	var from_coord: Vector2i = unit.coord
 	var to_coord: Vector2i = target.coord
@@ -138,6 +228,11 @@ func show_reachable(reachable: Dictionary) -> void:
 
 func show_selected(tile: HexTile) -> void:
 	tile.set_highlight("selected")
+
+
+func show_attackable(targets: Array[HexTile]) -> void:
+	for tile: HexTile in targets:
+		tile.set_highlight("attackable")
 
 
 func _on_tile_clicked(tile: HexTile) -> void:

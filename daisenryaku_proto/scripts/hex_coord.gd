@@ -18,6 +18,13 @@ static func axial_to_pixel(q: int, r: int, size: float) -> Vector2:
 	return Vector2(x, y)
 
 
+static func distance(a: Vector2i, b: Vector2i) -> int:
+	var dq: int = a.x - b.x
+	var dr: int = a.y - b.y
+	var ds: int = -dq - dr
+	return maxi(absi(dq), maxi(absi(dr), absi(ds)))
+
+
 static func pixel_to_axial(pos: Vector2, size: float) -> Vector2i:
 	var q: float = (SQRT3 / 3.0 * pos.x - 1.0 / 3.0 * pos.y) / size
 	var r: float = (2.0 / 3.0 * pos.y) / size

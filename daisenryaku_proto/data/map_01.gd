@@ -16,3 +16,4 @@ const DATA: Array = [
 
 const PLAYER_START: Vector2i = Vector2i(2, 2)
 const ENEMY_START: Vector2i = Vector2i(9, 6)
+const ENEMY_NEAR: Vector2i = Vector2i(3, 2)

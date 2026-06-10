@@ -36,4 +36,4 @@ text = "Loading..."
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
-text = "左クリック: 選択/移動  |  右クリック: 選択解除  |  青=移動可能  黄=選択中"
+text = "左クリック: 選択/移動/攻撃  |  右クリック: 解除  |  青=移動  赤=攻撃可能  黄=選択中"

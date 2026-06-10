@@ -38,6 +38,9 @@ func set_highlight(mode: String) -> void:
 		"reachable":
 			highlight.color = Color(0.35, 0.75, 1.0, 0.45)
 			highlight.visible = true
+		"attackable":
+			highlight.color = Color(1.0, 0.30, 0.20, 0.55)
+			highlight.visible = true
 		_:
 			highlight.visible = false
 

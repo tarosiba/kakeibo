@@ -14,6 +14,13 @@ const MOVE_COST: Dictionary = {
 	Type.MOUNTAIN: 99,
 }
 
+const DEFENSE_BONUS: Dictionary = {
+	Type.PLAIN: 0,
+	Type.FOREST: 1,
+	Type.SEA: 0,
+	Type.MOUNTAIN: 2,
+}
+
 const COLORS: Dictionary = {
 	Type.PLAIN: Color(0.45, 0.65, 0.35),
 	Type.FOREST: Color(0.22, 0.48, 0.20),
