@@ -22,7 +22,7 @@ script = ExtResource("2_game_manager")
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 700.0
-offset_bottom = 120.0
+offset_bottom = 140.0
 
 [node name="VBox" type="VBoxContainer" parent="UI/Panel"]
 layout_mode = 2
@@ -31,6 +31,12 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 text = "ターン 1 - プレイヤー"
+
+[node name="FundsLabel" type="Label" parent="UI/Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.85, 0.35, 1)
+text = "資金  自軍 $0  /  敵 $0"
 
 [node name="UnitsStatusLabel" type="Label" parent="UI/Panel/VBox"]
 unique_name_in_owner = true
@@ -47,7 +53,7 @@ text = "Loading..."
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
-text = "Tab/次へ=ユニット切替  |  右リスト=選択  |  1体1回移動or攻撃"
+text = "自軍基地クリック=生産  |  移動で占領  |  1基地1生産/ターン"
 
 [node name="EndTurnButton" type="Button" parent="UI"]
 unique_name_in_owner = true
@@ -64,6 +70,26 @@ offset_top = 60.0
 offset_right = 860.0
 offset_bottom = 100.0
 text = "次のユニット"
+
+[node name="ProductionPanel" type="PanelContainer" parent="UI"]
+unique_name_in_owner = true
+visible = false
+offset_left = 720.0
+offset_top = 112.0
+offset_right = 1010.0
+offset_bottom = 300.0
+
+[node name="ProductionVBox" type="VBoxContainer" parent="UI/ProductionPanel"]
+layout_mode = 2
+
+[node name="ProductionTitle" type="Label" parent="UI/ProductionPanel/ProductionVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "基地生産"
+
+[node name="ProductionButtons" type="VBoxContainer" parent="UI/ProductionPanel/ProductionVBox"]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="RosterPanel" type="PanelContainer" parent="UI"]
 offset_left = 880.0

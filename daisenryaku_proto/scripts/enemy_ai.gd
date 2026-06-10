@@ -59,3 +59,18 @@ static func _nearest_player_distance(coord: Vector2i, player_units: Array[Unit])
 	for player: Unit in player_units:
 		nearest = mini(nearest, HexCoord.distance(coord, player.coord))
 	return nearest
+
+
+static func decide_production(hex_map: HexMap, tile: HexTile, funds: int) -> String:
+	if not hex_map.can_produce_at(tile, Unit.Faction.ENEMY):
+		return ""
+
+	var affordable: Array[Dictionary] = UnitCatalog.get_affordable_entries(funds)
+	if affordable.is_empty():
+		return ""
+
+	var best_entry: Dictionary = affordable[0]
+	for entry: Dictionary in affordable:
+		if entry.cost > best_entry.cost:
+			best_entry = entry
+	return best_entry.id

@@ -14,6 +14,30 @@ const DATA: Array = [
 	[0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0],
 ]
 
+const INITIAL_PLAYER_FUNDS: int = 800
+const INITIAL_ENEMY_FUNDS: int = 800
+
+const BASES: Array[Dictionary] = [
+	{
+		"coord": Vector2i(1, 7),
+		"name": "自軍基地",
+		"owner": BaseInfo.Owner.PLAYER,
+		"income": 250,
+	},
+	{
+		"coord": Vector2i(10, 4),
+		"name": "敵基地",
+		"owner": BaseInfo.Owner.ENEMY,
+		"income": 250,
+	},
+	{
+		"coord": Vector2i(5, 6),
+		"name": "中立都市",
+		"owner": BaseInfo.Owner.NEUTRAL,
+		"income": 300,
+	},
+]
+
 const PLAYER_UNITS: Array[Dictionary] = [
 	{
 		"coord": Vector2i(1, 3),
@@ -27,7 +51,7 @@ const PLAYER_UNITS: Array[Dictionary] = [
 		"color": Color(0.85, 0.20, 0.20),
 	},
 	{
-		"coord": Vector2i(2, 5),
+		"coord": Vector2i(1, 6),
 		"name": "歩兵",
 		"type": Unit.UnitType.INFANTRY,
 		"move": 3,
@@ -52,7 +76,7 @@ const PLAYER_UNITS: Array[Dictionary] = [
 
 const ENEMY_UNITS: Array[Dictionary] = [
 	{
-		"coord": Vector2i(4, 3),
+		"coord": Vector2i(7, 4),
 		"name": "敵戦車",
 		"type": Unit.UnitType.TANK,
 		"move": 3,

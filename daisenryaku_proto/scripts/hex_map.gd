@@ -12,13 +12,18 @@ const UNIT_SCENE: PackedScene = preload("res://scenes/unit.tscn")
 
 var tiles: Dictionary = {}
 var units: Array[Unit] = []
+var player_funds: int = 0
+var enemy_funds: int = 0
 
 @onready var tiles_root: Node2D = $Tiles
 @onready var units_root: Node2D = $Units
 
 
 func _ready() -> void:
+	player_funds = Map01.INITIAL_PLAYER_FUNDS
+	enemy_funds = Map01.INITIAL_ENEMY_FUNDS
 	generate_map(Map01.DATA)
+	_spawn_bases()
 	_spawn_starting_units()
 
 
@@ -38,6 +43,20 @@ func generate_map(map_data: Array) -> void:
 			tile.unhovered.connect(_on_tile_unhovered)
 			tiles_root.add_child(tile)
 			tiles[coord] = tile
+
+
+func _spawn_bases() -> void:
+	for config: Dictionary in Map01.BASES:
+		var coord: Vector2i = config.coord
+		if not tiles.has(coord):
+			push_error("Missing tile for base: %s" % coord)
+			continue
+
+		var info := BaseInfo.new()
+		info.base_name = config.name
+		info.owner = config.owner
+		info.income = config.income
+		tiles[coord].set_base(info)
 
 
 func _spawn_starting_units() -> void:
@@ -134,6 +153,132 @@ func reset_all_unit_turns() -> void:
 
 func has_living_units(faction: Unit.Faction) -> bool:
 	return not get_units_by_faction(faction).is_empty()
+
+
+func get_funds(faction: Unit.Faction) -> int:
+	match faction:
+		Unit.Faction.PLAYER:
+			return player_funds
+		Unit.Faction.ENEMY:
+			return enemy_funds
+		_:
+			return 0
+
+
+func can_afford(faction: Unit.Faction, cost: int) -> bool:
+	return get_funds(faction) >= cost
+
+
+func spend_funds(faction: Unit.Faction, amount: int) -> bool:
+	if not can_afford(faction, amount):
+		return false
+
+	match faction:
+		Unit.Faction.PLAYER:
+			player_funds -= amount
+		Unit.Faction.ENEMY:
+			enemy_funds -= amount
+		_:
+			return false
+	return true
+
+
+func collect_income(faction: Unit.Faction) -> int:
+	var total: int = 0
+	for tile: HexTile in tiles.values():
+		if tile.base_info != null and tile.base_info.is_owned_by(faction):
+			total += tile.base_info.income
+	match faction:
+		Unit.Faction.PLAYER:
+			player_funds += total
+		Unit.Faction.ENEMY:
+			enemy_funds += total
+	return total
+
+
+func reset_base_production(faction: Unit.Faction) -> void:
+	for tile: HexTile in tiles.values():
+		if tile.base_info != null and tile.base_info.is_owned_by(faction):
+			tile.base_info.produced_this_turn = false
+
+
+func get_bases_owned_by(faction: Unit.Faction) -> Array[HexTile]:
+	var result: Array[HexTile] = []
+	for tile: HexTile in tiles.values():
+		if tile.base_info != null and tile.base_info.is_owned_by(faction):
+			result.append(tile)
+	return result
+
+
+func try_capture_base(tile: HexTile, faction: Unit.Faction) -> Dictionary:
+	if tile.base_info == null:
+		return {"captured": false}
+	if tile.base_info.is_owned_by(faction):
+		return {"captured": false}
+
+	var base_name: String = tile.base_info.base_name
+	var old_owner: BaseInfo.Owner = tile.base_info.owner
+	tile.base_info.set_owner_from_faction(faction)
+	tile._update_base_display()
+	return {
+		"captured": true,
+		"base_name": base_name,
+		"old_owner": old_owner,
+	}
+
+
+func can_produce_at(tile: HexTile, faction: Unit.Faction) -> bool:
+	if tile.base_info == null:
+		return false
+	if not tile.base_info.is_owned_by(faction):
+		return false
+	if tile.base_info.produced_this_turn:
+		return false
+	return tile.unit == null
+
+
+func produce_unit(tile: HexTile, faction: Unit.Faction, catalog_id: String) -> Dictionary:
+	if not can_produce_at(tile, faction):
+		return {"success": false, "reason": "生産できません"}
+
+	var entry: Dictionary = UnitCatalog.get_entry(catalog_id)
+	if entry.is_empty():
+		return {"success": false, "reason": "不明なユニット"}
+
+	if not spend_funds(faction, entry.cost):
+		return {"success": false, "reason": "資金が足りません"}
+
+	var color: Color = entry.color
+	if faction == Unit.Faction.ENEMY:
+		color = color.darkened(0.25)
+
+	var unit: Unit = spawn_unit(
+		tile.coord,
+		faction,
+		color,
+		entry.move,
+		entry.range,
+		entry.atk,
+		entry.def,
+		entry.hp,
+		entry.name,
+		entry.type,
+	)
+	if unit == null:
+		match faction:
+			Unit.Faction.PLAYER:
+				player_funds += entry.cost
+			Unit.Faction.ENEMY:
+				enemy_funds += entry.cost
+		return {"success": false, "reason": "配置に失敗しました"}
+
+	tile.base_info.produced_this_turn = true
+	return {
+		"success": true,
+		"unit": unit,
+		"cost": entry.cost,
+		"unit_name": entry.name,
+	}
 
 
 func get_reachable(from: Vector2i, move_points: int) -> Dictionary:
@@ -246,25 +391,29 @@ func remove_unit(unit: Unit) -> void:
 	unit.queue_free()
 
 
-func move_unit(unit: Unit, target: HexTile) -> bool:
+func move_unit(unit: Unit, target: HexTile) -> Dictionary:
 	var from_coord: Vector2i = unit.coord
 	var to_coord: Vector2i = target.coord
 
 	if from_coord == to_coord:
-		return false
+		return {"success": false}
 
 	var from_tile: HexTile = tiles[from_coord]
 	if from_tile.unit != unit:
-		return false
+		return {"success": false}
 
 	if target.unit != null:
-		return false
+		return {"success": false}
 
 	from_tile.unit = null
 	target.unit = unit
 	unit.coord = to_coord
 	unit.position = target.position
-	return true
+	var capture: Dictionary = try_capture_base(target, unit.faction)
+	return {
+		"success": true,
+		"capture": capture,
+	}
 
 
 func predict_attack(attacker: Unit, target_tile: HexTile) -> Dictionary:
@@ -298,6 +447,10 @@ func show_reachable(reachable: Dictionary) -> void:
 
 func show_selected(tile: HexTile) -> void:
 	tile.set_highlight("selected")
+
+
+func show_base_selected(tile: HexTile) -> void:
+	tile.set_highlight("base")
 
 
 func show_attackable(targets: Array[HexTile]) -> void:

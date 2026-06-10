@@ -9,9 +9,12 @@ signal unhovered(tile: HexTile)
 @export var terrain: Terrain.Type = Terrain.Type.PLAIN
 
 var unit: Unit = null
+var base_info: BaseInfo = null
 
 @onready var polygon: Polygon2D = $Polygon2D
 @onready var highlight: Polygon2D = $Highlight
+@onready var base_marker: Polygon2D = $BaseMarker
+@onready var base_label: Label = $BaseLabel
 @onready var damage_label: Label = $DamageLabel
 
 
@@ -20,6 +23,7 @@ func _ready() -> void:
 	monitoring = true
 	_apply_terrain_color()
 	highlight.visible = false
+	_update_base_display()
 	set_damage_preview("")
 	input_event.connect(_on_input_event)
 	mouse_entered.connect(_on_mouse_entered)
@@ -31,6 +35,25 @@ func setup(tile_coord: Vector2i, tile_terrain: Terrain.Type) -> void:
 	terrain = tile_terrain
 	if is_node_ready():
 		_apply_terrain_color()
+		_update_base_display()
+
+
+func set_base(info: BaseInfo) -> void:
+	base_info = info
+	if is_node_ready():
+		_update_base_display()
+
+
+func _update_base_display() -> void:
+	if base_info == null:
+		base_marker.visible = false
+		base_label.visible = false
+		return
+
+	base_marker.visible = true
+	base_marker.color = base_info.get_owner_color()
+	base_label.visible = true
+	base_label.text = "■"
 
 
 func _apply_terrain_color() -> void:
@@ -52,6 +75,9 @@ func set_highlight(mode: String) -> void:
 			highlight.visible = true
 		"attackable":
 			highlight.color = Color(1.0, 0.30, 0.20, 0.55)
+			highlight.visible = true
+		"base":
+			highlight.color = Color(0.95, 0.75, 0.20, 0.55)
 			highlight.visible = true
 		_:
 			highlight.visible = false
