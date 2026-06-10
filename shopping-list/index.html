@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#16a34a" />
+  <title>買い物リスト</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1 class="title">買い物リスト</h1>
+      <p class="subtitle" id="itemCount">0件</p>
+    </header>
+
+    <form class="add-form" id="addForm">
+      <label class="field">
+        <span>品目</span>
+        <input type="text" id="itemName" placeholder="例：牛乳、玉ねぎ" required maxlength="60" autocomplete="off" />
+      </label>
+      <div class="form-row">
+        <label class="field field-grow">
+          <span>数量（任意）</span>
+          <input type="text" id="itemQty" placeholder="例：2本、500g" maxlength="20" autocomplete="off" />
+        </label>
+        <label class="field field-category">
+          <span>カテゴリ</span>
+          <select id="itemCategory">
+            <option value="other">その他</option>
+            <option value="produce">野菜・果物</option>
+            <option value="meat">肉・魚</option>
+            <option value="dairy">乳製品</option>
+            <option value="pantry">調味料・乾物</option>
+            <option value="daily">日用品</option>
+          </select>
+        </label>
+      </div>
+      <button type="submit" class="primary-btn">追加</button>
+    </form>
+
+    <div class="toolbar">
+      <button type="button" class="filter-btn active" data-filter="active" id="filterActive">未購入</button>
+      <button type="button" class="filter-btn" data-filter="all" id="filterAll">すべて</button>
+      <button type="button" class="text-btn" id="clearDone" hidden>購入済みを削除</button>
+    </div>
+
+    <ul class="item-list" id="itemList" aria-label="買い物リスト"></ul>
+
+    <p class="empty-msg" id="emptyMsg" hidden>リストは空です。上のフォームから追加してください。</p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
