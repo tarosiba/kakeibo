@@ -18,3 +18,12 @@ static func apply_attack(
 	var damage: int = calculate_damage(attacker, defender, defender_tile)
 	defender.take_damage(damage)
 	return damage
+
+
+static func can_counterattack(
+	attacker: Unit,
+	defender: Unit,
+) -> bool:
+	if not defender.is_alive():
+		return false
+	return HexCoord.distance(defender.coord, attacker.coord) <= defender.attack_range

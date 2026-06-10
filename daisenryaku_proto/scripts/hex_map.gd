@@ -179,7 +179,11 @@ func get_attack_targets(attacker: Unit) -> Array[HexTile]:
 	return targets
 
 
-func attack_unit(attacker: Unit, target_tile: HexTile) -> Dictionary:
+func attack_unit(
+	attacker: Unit,
+	target_tile: HexTile,
+	allow_counter: bool = true,
+) -> Dictionary:
 	var defender: Unit = target_tile.unit
 	if defender == null or defender.faction == attacker.faction:
 		return {"success": false}
@@ -192,11 +196,36 @@ func attack_unit(attacker: Unit, target_tile: HexTile) -> Dictionary:
 	if killed:
 		remove_unit(defender)
 
+	var counter: Dictionary = {}
+	if allow_counter and CombatResolver.can_counterattack(attacker, defender):
+		counter = _resolve_counterattack(defender, attacker)
+
 	return {
 		"success": true,
 		"damage": damage,
 		"killed": killed,
-		"defender_hp": defender.hp,
+		"defender_hp": defender.hp if not killed else 0,
+		"counter": counter,
+	}
+
+
+func _resolve_counterattack(defender: Unit, attacker: Unit) -> Dictionary:
+	if not tiles.has(attacker.coord):
+		return {"occurred": false}
+
+	var attacker_tile: HexTile = tiles[attacker.coord]
+	var counter_damage: int = CombatResolver.apply_attack(defender, attacker, attacker_tile)
+	var attacker_killed: bool = not attacker.is_alive()
+	if attacker_killed:
+		remove_unit(attacker)
+
+	return {
+		"occurred": true,
+		"damage": counter_damage,
+		"killed": attacker_killed,
+		"attacker_hp": attacker.hp if not attacker_killed else 0,
+		"counter_attacker": defender,
+		"counter_victim": attacker,
 	}
 
 

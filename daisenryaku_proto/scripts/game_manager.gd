@@ -111,25 +111,16 @@ func _execute_move(tile: HexTile) -> void:
 
 func _execute_attack(tile: HexTile) -> void:
 	var defender: Unit = tile.unit
-	var result: Dictionary = hex_map.attack_unit(selected_unit, tile)
+	var attacker: Unit = selected_unit
+	var result: Dictionary = hex_map.attack_unit(attacker, tile)
 	if not result.success:
 		_update_status("攻撃できません。")
 		return
 
-	selected_unit.mark_acted()
-
-	var message := "攻撃! %d ダメージ → 敵 HP %d" % [
-		result.damage,
-		result.defender_hp,
-	]
-	if result.killed:
-		message = "攻撃! %d ダメージ → %s を撃破!" % [
-			result.damage,
-			_faction_name(defender.faction),
-		]
-
+	if is_instance_valid(attacker) and attacker.is_alive():
+		attacker.mark_acted()
 	_clear_selection()
-	_update_status(message)
+	_update_status(_format_attack_message(result, defender))
 	if _check_victory():
 		return
 
@@ -176,13 +167,10 @@ func _run_enemy_turn() -> void:
 		match action.get("type", "wait"):
 			"attack":
 				var target_tile: HexTile = action.target
+				var victim: Unit = target_tile.unit
 				var result: Dictionary = hex_map.attack_unit(enemy, target_tile)
 				if result.success:
-					_update_status(
-						"敵が攻撃! %d ダメージ" % result.damage,
-					)
-					if result.killed:
-						_update_status("敵の攻撃で自軍ユニットが撃破されました!")
+					_update_status(_format_enemy_attack_message(result, victim))
 					if _check_victory():
 						_enemy_turn_running = false
 						return
@@ -191,7 +179,8 @@ func _run_enemy_turn() -> void:
 				hex_map.move_unit(enemy, move_tile)
 				_update_status("敵が移動しました。")
 
-		enemy.mark_acted()
+		if is_instance_valid(enemy) and enemy.is_alive():
+			enemy.mark_acted()
 		await get_tree().create_timer(ENEMY_ACTION_DELAY).timeout
 
 	_enemy_turn_running = false
@@ -278,6 +267,54 @@ func _update_turn_label() -> void:
 			turn_label.text = "ターン %d - プレイヤー" % turn_number
 		TurnPhase.ENEMY:
 			turn_label.text = "ターン %d - 敵" % turn_number
+
+
+func _format_attack_message(result: Dictionary, defender: Unit) -> String:
+	var message: String
+	if result.killed:
+		message = "攻撃! %d ダメージ → %s を撃破!" % [
+			result.damage,
+			_faction_name(defender.faction),
+		]
+	else:
+		message = "攻撃! %d ダメージ → 敵 HP %d" % [
+			result.damage,
+			result.defender_hp,
+		]
+
+	return message + _format_counter_message(result.get("counter", {}))
+
+
+func _format_enemy_attack_message(result: Dictionary, victim: Unit) -> String:
+	var message: String
+	if result.killed:
+		message = "敵が攻撃! %d ダメージ → 自軍ユニットを撃破!" % result.damage
+	else:
+		message = "敵が攻撃! %d ダメージ → 自軍 HP %d" % [
+			result.damage,
+			result.defender_hp,
+		]
+
+	return message + _format_counter_message(result.get("counter", {}))
+
+
+func _format_counter_message(counter: Dictionary) -> String:
+	if not counter.get("occurred", false):
+		return ""
+
+	var counter_attacker: Unit = counter.counter_attacker
+	var counter_victim: Unit = counter.counter_victim
+	if counter.killed:
+		return "  /  反撃! %d ダメージ → %s を撃破!" % [
+			counter.damage,
+			_faction_name(counter_victim.faction),
+		]
+
+	return "  /  反撃! %d ダメージ → %s HP %d" % [
+		counter.damage,
+		_faction_name(counter_victim.faction),
+		counter.attacker_hp,
+	]
 
 
 func _faction_name(faction: Unit.Faction) -> String:
