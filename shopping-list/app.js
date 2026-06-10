@@ -9,6 +9,11 @@ const CATEGORIES = {
   other: "その他",
 };
 
+const DEFAULT_ITEMS = [
+  { name: "指サック", category: "daily" },
+  { name: "おやつ用のお菓子", category: "other" },
+];
+
 const addForm = document.getElementById("addForm");
 const itemName = document.getElementById("itemName");
 const itemQty = document.getElementById("itemQty");
@@ -148,7 +153,15 @@ function render() {
 function loadItems() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) return JSON.parse(raw);
+    return DEFAULT_ITEMS.map((item, index) => ({
+      id: crypto.randomUUID(),
+      name: item.name,
+      qty: item.qty || "",
+      category: item.category,
+      done: false,
+      createdAt: Date.now() - index,
+    }));
   } catch {
     return [];
   }
