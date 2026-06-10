@@ -59,7 +59,7 @@ func _update_detail(index: int = -1) -> void:
 		return
 
 	var id := _ordered_ids[index]
-	var node: ResearchDefs.NodeInfo = Research.get_node(id)
+	var node: ResearchDefs.NodeInfo = Research.get_research(id)
 	if node == null:
 		return
 
@@ -67,7 +67,7 @@ func _update_detail(index: int = -1) -> void:
 	if not node.prerequisites.is_empty():
 		var names: PackedStringArray = []
 		for pid in node.prerequisites:
-			var p: ResearchDefs.NodeInfo = Research.get_node(pid)
+			var p: ResearchDefs.NodeInfo = Research.get_research(pid)
 			names.append(p.name if p else pid)
 		prereq_text = ", ".join(names)
 
@@ -93,7 +93,7 @@ func _on_start_pressed() -> void:
 	if not result.ok:
 		Game.add_log("研究開始失敗: %s" % result.reason)
 	else:
-		var node: ResearchDefs.NodeInfo = Research.get_node(id)
+		var node: ResearchDefs.NodeInfo = Research.get_research(id)
 		Game.add_log("研究開始: %s" % node.name)
 		Game.state_changed.emit()
 	_refresh()

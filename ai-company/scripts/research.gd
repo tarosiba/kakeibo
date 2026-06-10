@@ -17,7 +17,7 @@ func _ready() -> void:
 	research_changed.emit()
 
 
-func get_node(id: String) -> ResearchDefs.NodeInfo:
+func get_research(id: String) -> ResearchDefs.NodeInfo:
 	return _defs.get(id)
 
 
