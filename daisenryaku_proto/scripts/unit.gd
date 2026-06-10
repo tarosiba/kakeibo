@@ -16,20 +16,36 @@ enum Faction {
 
 var coord: Vector2i = Vector2i.ZERO
 var hp: int = 10
+var has_acted: bool = false
 
 
 func _ready() -> void:
 	hp = max_hp
-	queue_redraw()
+	_update_visual()
 
 
 func take_damage(amount: int) -> void:
 	hp = maxi(0, hp - amount)
-	queue_redraw()
+	_update_visual()
 
 
 func is_alive() -> bool:
 	return hp > 0
+
+
+func mark_acted() -> void:
+	has_acted = true
+	_update_visual()
+
+
+func reset_turn() -> void:
+	has_acted = false
+	_update_visual()
+
+
+func _update_visual() -> void:
+	modulate = Color(0.55, 0.55, 0.55) if has_acted else Color.WHITE
+	queue_redraw()
 
 
 func _draw() -> void:

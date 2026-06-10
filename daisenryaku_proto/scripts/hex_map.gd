@@ -113,6 +113,24 @@ func get_tile(coord: Vector2i) -> HexTile:
 	return tiles.get(coord)
 
 
+func get_units_by_faction(faction: Unit.Faction) -> Array[Unit]:
+	var result: Array[Unit] = []
+	for unit: Unit in units:
+		if unit.is_alive() and unit.faction == faction:
+			result.append(unit)
+	return result
+
+
+func reset_all_unit_turns() -> void:
+	for unit: Unit in units:
+		if unit.is_alive():
+			unit.reset_turn()
+
+
+func has_living_units(faction: Unit.Faction) -> bool:
+	return not get_units_by_faction(faction).is_empty()
+
+
 func get_reachable(from: Vector2i, move_points: int) -> Dictionary:
 	var result: Dictionary = {}
 	var frontier: Array = [[from, move_points]]

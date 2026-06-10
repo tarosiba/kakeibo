@@ -21,11 +21,16 @@ script = ExtResource("2_game_manager")
 [node name="Panel" type="PanelContainer" parent="UI"]
 offset_left = 8.0
 offset_top = 8.0
-offset_right = 760.0
-offset_bottom = 88.0
+offset_right = 820.0
+offset_bottom = 120.0
 
 [node name="VBox" type="VBoxContainer" parent="UI/Panel"]
 layout_mode = 2
+
+[node name="TurnLabel" type="Label" parent="UI/Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "ターン 1 - プレイヤー"
 
 [node name="StatusLabel" type="Label" parent="UI/Panel/VBox"]
 unique_name_in_owner = true
@@ -36,4 +41,12 @@ text = "Loading..."
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
-text = "左クリック: 選択/移動/攻撃  |  右クリック: 解除  |  青=移動  赤=攻撃可能  黄=選択中"
+text = "1ターンに移動か攻撃を1回  |  青=移動  赤=攻撃  黄=選択  灰=行動済み"
+
+[node name="EndTurnButton" type="Button" parent="UI"]
+unique_name_in_owner = true
+offset_left = 840.0
+offset_top = 12.0
+offset_right = 1000.0
+offset_bottom = 52.0
+text = "ターン終了"
