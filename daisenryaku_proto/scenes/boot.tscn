@@ -43,6 +43,11 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 
+[node name="ContinueButton" type="Button" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "続きから (セーブなし)"
+
 [node name="PlayDefaultButton" type="Button" parent="Panel/VBox"]
 layout_mode = 2
 text = "デフォルトマップでプレイ"
@@ -59,6 +64,7 @@ text = "マップエディタ"
 layout_mode = 2
 text = "終了"
 
+[connection signal="pressed" from="Panel/VBox/ContinueButton" to="." method="_on_continue_pressed"]
 [connection signal="pressed" from="Panel/VBox/PlayDefaultButton" to="." method="_on_play_default_pressed"]
 [connection signal="pressed" from="Panel/VBox/PlayCustomButton" to="." method="_on_play_custom_pressed"]
 [connection signal="pressed" from="Panel/VBox/MapEditorButton" to="." method="_on_map_editor_pressed"]

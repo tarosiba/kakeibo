@@ -20,7 +20,8 @@ var enemy_funds: int = 0
 
 
 func _ready() -> void:
-	setup_map(GameSession.get_map_data())
+	if not GameSession.has_resume_save():
+		setup_map(GameSession.get_map_data())
 
 
 func setup_map(map_data: MapData) -> void:
@@ -75,6 +76,7 @@ func _spawn_bases_from_data(base_entries: Array) -> void:
 		info.base_name = config.name
 		info.owner = config.owner
 		info.income = config.income
+		info.produced_this_turn = config.get("produced_this_turn", false)
 		tiles[coord].set_base(info)
 
 
@@ -84,7 +86,8 @@ func _spawn_units_from_data(unit_entries: Array, faction: Unit.Faction) -> void:
 
 
 func _spawn_unit_from_config(config: Dictionary, faction: Unit.Faction) -> Unit:
-	return spawn_unit(
+	var max_hp: int = config.get("max_hp", config.hp)
+	var unit: Unit = spawn_unit(
 		config.coord,
 		faction,
 		config.color,
@@ -92,10 +95,19 @@ func _spawn_unit_from_config(config: Dictionary, faction: Unit.Faction) -> Unit:
 		config.range,
 		config.atk,
 		config.def,
-		config.hp,
+		max_hp,
 		config.name,
 		config.type,
 	)
+	if unit == null:
+		return null
+
+	unit.hp = clampi(config.get("hp", max_hp), 0, max_hp)
+	if config.get("has_acted", false):
+		unit.mark_acted()
+	else:
+		unit.reset_turn()
+	return unit
 
 
 func spawn_unit(
@@ -140,6 +152,94 @@ func spawn_unit(
 
 func get_tile(coord: Vector2i) -> HexTile:
 	return tiles.get(coord)
+
+
+func capture_runtime_state() -> Dictionary:
+	var map_bounds: Vector2i = _get_map_bounds()
+	var width: int = map_bounds.x
+	var height: int = map_bounds.y
+	var terrain_grid: Array = []
+
+	for r in height:
+		var row: Array = []
+		for q in width:
+			var coord := Vector2i(q, r)
+			if tiles.has(coord):
+				row.append(tiles[coord].terrain)
+			else:
+				row.append(Terrain.Type.PLAIN)
+		terrain_grid.append(row)
+
+	var base_entries: Array = []
+	for tile: HexTile in tiles.values():
+		if tile.base_info == null:
+			continue
+		base_entries.append({
+			"coord": tile.coord,
+			"name": tile.base_info.base_name,
+			"owner": tile.base_info.owner,
+			"income": tile.base_info.income,
+			"produced_this_turn": tile.base_info.produced_this_turn,
+		})
+
+	var player_unit_entries: Array = []
+	var enemy_unit_entries: Array = []
+	for unit: Unit in units:
+		if not unit.is_alive():
+			continue
+		var entry: Dictionary = _encode_runtime_unit(unit)
+		if unit.faction == Unit.Faction.PLAYER:
+			player_unit_entries.append(entry)
+		else:
+			enemy_unit_entries.append(entry)
+
+	var map_data := MapData.new()
+	map_data.map_name = "runtime"
+	map_data.terrain = terrain_grid
+	map_data.bases = base_entries
+	map_data.player_units = player_unit_entries
+	map_data.enemy_units = enemy_unit_entries
+	map_data.player_funds = player_funds
+	map_data.enemy_funds = enemy_funds
+	return map_data.to_dict()
+
+
+func restore_runtime_state(snapshot: Dictionary) -> void:
+	var map_data: MapData = MapData.from_dict(snapshot)
+	setup_map(map_data)
+
+
+func _get_map_bounds() -> Vector2i:
+	var max_q: int = 0
+	var max_r: int = 0
+	for coord: Vector2i in tiles.keys():
+		max_q = maxi(max_q, coord.x + 1)
+		max_r = maxi(max_r, coord.y + 1)
+	return Vector2i(max_q, max_r)
+
+
+func _encode_runtime_unit(unit: Unit) -> Dictionary:
+	var catalog_id: String = "infantry"
+	match unit.unit_type:
+		Unit.UnitType.TANK:
+			catalog_id = "tank"
+		Unit.UnitType.ARTILLERY:
+			catalog_id = "artillery"
+
+	return {
+		"coord": unit.coord,
+		"name": unit.unit_name,
+		"type": unit.unit_type,
+		"move": unit.move_range,
+		"range": unit.attack_range,
+		"atk": unit.attack_power,
+		"def": unit.defense,
+		"hp": unit.hp,
+		"max_hp": unit.max_hp,
+		"has_acted": unit.has_acted,
+		"color": unit.faction_color,
+		"catalog_id": catalog_id,
+	}
 
 
 func get_units_by_faction(faction: Unit.Faction) -> Array[Unit]:

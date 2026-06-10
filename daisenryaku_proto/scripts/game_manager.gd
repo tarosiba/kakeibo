@@ -31,6 +31,7 @@ const ENEMY_ACTION_DELAY: float = 0.45
 @onready var end_turn_button: Button = %EndTurnButton
 @onready var next_unit_button: Button = %NextUnitButton
 @onready var menu_button: Button = $"../UI/MenuButton"
+@onready var save_button: Button = %SaveButton
 
 var state: State = State.IDLE
 var turn_phase: TurnPhase = TurnPhase.PLAYER
@@ -50,12 +51,64 @@ func _ready() -> void:
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	next_unit_button.pressed.connect(_select_next_available_unit)
 	menu_button.pressed.connect(_on_menu_pressed)
+	save_button.pressed.connect(_on_save_pressed)
 	production_panel.visible = false
-	_start_player_turn()
+
+	if GameSession.has_resume_save():
+		_apply_save_data(GameSession.take_resume_save())
+	else:
+		_start_player_turn()
 
 
 func _on_menu_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/boot.tscn")
+
+
+func _on_save_pressed() -> void:
+	if not _can_save():
+		_update_status("今はセーブできません。プレイヤーターン中のみ保存できます。")
+		return
+
+	var snapshot: Dictionary = SaveGame.build_snapshot(
+		hex_map,
+		turn_number,
+		turn_phase,
+		game_result,
+		GameSession.map_source,
+	)
+	if SaveGame.save_snapshot(snapshot):
+		_update_status("セーブしました。(ターン %d)" % turn_number)
+	else:
+		_update_status("セーブに失敗しました。")
+
+
+func _can_save() -> bool:
+	return game_result == GameResult.NONE \
+			and turn_phase == TurnPhase.PLAYER \
+			and not _enemy_turn_running
+
+
+func _apply_save_data(save_data: Dictionary) -> void:
+	hex_map.restore_runtime_state(save_data.get("map", {}))
+	turn_number = save_data.get("turn_number", 1)
+	turn_phase = save_data.get("turn_phase", TurnPhase.PLAYER)
+	game_result = save_data.get("game_result", GameResult.NONE)
+	_enemy_turn_running = false
+	_clear_selection()
+	_refresh_unit_roster()
+	_update_turn_label()
+	_update_funds_label()
+	end_turn_button.disabled = game_result != GameResult.NONE or turn_phase != TurnPhase.PLAYER
+	next_unit_button.disabled = end_turn_button.disabled
+	save_button.disabled = not _can_save()
+
+	match game_result:
+		GameResult.VICTORY:
+			_update_status("セーブデータを読み込みました。勝利状態です。")
+		GameResult.DEFEAT:
+			_update_status("セーブデータを読み込みました。敗北状態です。")
+		_:
+			_update_status("セーブデータを読み込みました。ターン %d から再開します。" % turn_number)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -250,6 +303,7 @@ func _start_player_turn() -> void:
 	var income: int = hex_map.collect_income(Unit.Faction.PLAYER)
 	end_turn_button.disabled = false
 	next_unit_button.disabled = false
+	save_button.disabled = false
 	_update_turn_label()
 	_refresh_unit_roster()
 	_update_funds_label()
@@ -268,6 +322,7 @@ func _start_enemy_turn() -> void:
 	turn_phase = TurnPhase.ENEMY
 	end_turn_button.disabled = true
 	next_unit_button.disabled = true
+	save_button.disabled = true
 	_clear_selection()
 	_update_turn_label()
 	_refresh_unit_roster()
@@ -381,6 +436,7 @@ func _on_player_victory() -> void:
 	game_result = GameResult.VICTORY
 	end_turn_button.disabled = true
 	next_unit_button.disabled = true
+	save_button.disabled = true
 	_clear_selection()
 	_refresh_unit_roster()
 	_update_turn_label()
@@ -392,6 +448,7 @@ func _on_player_defeat() -> void:
 	game_result = GameResult.DEFEAT
 	end_turn_button.disabled = true
 	next_unit_button.disabled = true
+	save_button.disabled = true
 	_clear_selection()
 	_refresh_unit_roster()
 	_update_turn_label()

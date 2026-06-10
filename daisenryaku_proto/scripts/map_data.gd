@@ -186,6 +186,7 @@ static func _decode_bases(raw_bases: Array) -> Array:
 			"name": item.get("name", "基地"),
 			"owner": _decode_owner(item.get("owner", "NEUTRAL")),
 			"income": item.get("income", 250),
+			"produced_this_turn": item.get("produced_this_turn", false),
 		})
 	return result
 
@@ -196,18 +197,18 @@ static func _decode_units(raw_units: Array) -> Array:
 		var coord_value: Array = item.get("coord", [0, 0])
 		var catalog_id: String = item.get("catalog_id", "infantry")
 		var entry: Dictionary = UnitCatalog.get_entry(catalog_id)
-		if entry.is_empty():
-			continue
 		result.append({
 			"coord": Vector2i(coord_value[0], coord_value[1]),
-			"name": item.get("name", entry.name),
-			"type": _decode_unit_type(item.get("type", entry.type)),
-			"move": item.get("move", entry.move),
-			"range": item.get("range", entry.range),
-			"atk": item.get("atk", entry.atk),
-			"def": item.get("def", entry.def),
-			"hp": item.get("hp", entry.hp),
-			"color": _decode_color(item.get("color", entry.color)),
+			"name": item.get("name", entry.get("name", "ユニット")),
+			"type": _decode_unit_type(item.get("type", entry.get("type", Unit.UnitType.INFANTRY))),
+			"move": item.get("move", entry.get("move", 3)),
+			"range": item.get("range", entry.get("range", 1)),
+			"atk": item.get("atk", entry.get("atk", 3)),
+			"def": item.get("def", entry.get("def", 1)),
+			"hp": item.get("hp", entry.get("hp", 8)),
+			"max_hp": item.get("max_hp", item.get("hp", entry.get("hp", 8))),
+			"has_acted": item.get("has_acted", false),
+			"color": _decode_color(item.get("color", entry.get("color", Color.WHITE))),
 			"catalog_id": catalog_id,
 		})
 	return result
@@ -216,19 +217,22 @@ static func _decode_units(raw_units: Array) -> Array:
 func _encode_bases() -> Array:
 	var result: Array = []
 	for base: Dictionary in bases:
-		result.append({
+		var entry: Dictionary = {
 			"coord": [base.coord.x, base.coord.y],
 			"name": base.name,
 			"owner": _encode_owner(base.owner),
 			"income": base.income,
-		})
+		}
+		if base.get("produced_this_turn", false):
+			entry["produced_this_turn"] = true
+		result.append(entry)
 	return result
 
 
 func _encode_units(units: Array) -> Array:
 	var result: Array = []
 	for unit: Dictionary in units:
-		result.append({
+		var entry: Dictionary = {
 			"coord": [unit.coord.x, unit.coord.y],
 			"name": unit.name,
 			"type": _encode_unit_type(unit.type),
@@ -238,8 +242,12 @@ func _encode_units(units: Array) -> Array:
 			"atk": unit.atk,
 			"def": unit.def,
 			"hp": unit.hp,
+			"max_hp": unit.get("max_hp", unit.hp),
 			"color": [unit.color.r, unit.color.g, unit.color.b, unit.color.a],
-		})
+		}
+		if unit.get("has_acted", false):
+			entry["has_acted"] = true
+		result.append(entry)
 	return result
 
 
