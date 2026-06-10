@@ -2,6 +2,8 @@ class_name HexTile
 extends Area2D
 
 signal clicked(tile: HexTile)
+signal hovered(tile: HexTile)
+signal unhovered(tile: HexTile)
 
 @export var coord: Vector2i = Vector2i.ZERO
 @export var terrain: Terrain.Type = Terrain.Type.PLAIN
@@ -10,13 +12,18 @@ var unit: Unit = null
 
 @onready var polygon: Polygon2D = $Polygon2D
 @onready var highlight: Polygon2D = $Highlight
+@onready var damage_label: Label = $DamageLabel
 
 
 func _ready() -> void:
 	input_pickable = true
+	monitoring = true
 	_apply_terrain_color()
 	highlight.visible = false
+	set_damage_preview("")
 	input_event.connect(_on_input_event)
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
 
 
 func setup(tile_coord: Vector2i, tile_terrain: Terrain.Type) -> void:
@@ -28,6 +35,11 @@ func setup(tile_coord: Vector2i, tile_terrain: Terrain.Type) -> void:
 
 func _apply_terrain_color() -> void:
 	polygon.color = Terrain.COLORS.get(terrain, Color.GRAY)
+
+
+func set_damage_preview(text: String) -> void:
+	damage_label.text = text
+	damage_label.visible = text != ""
 
 
 func set_highlight(mode: String) -> void:
@@ -51,6 +63,14 @@ func is_passable_for_movement() -> bool:
 
 func get_move_cost() -> int:
 	return Terrain.MOVE_COST.get(terrain, 99)
+
+
+func _on_mouse_entered() -> void:
+	hovered.emit(self)
+
+
+func _on_mouse_exited() -> void:
+	unhovered.emit(self)
 
 
 func _on_input_event(

@@ -35,6 +35,8 @@ var _enemy_turn_running: bool = false
 
 func _ready() -> void:
 	hex_map.tile_clicked.connect(_on_tile_clicked)
+	hex_map.tile_hovered.connect(_on_tile_hovered)
+	hex_map.tile_unhovered.connect(_on_tile_unhovered)
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	_start_player_turn()
 
@@ -88,9 +90,10 @@ func _select_unit(unit: Unit, tile: HexTile) -> void:
 	state = State.UNIT_SELECTED
 	hex_map.show_reachable(reachable)
 	hex_map.show_attackable(attack_targets)
+	hex_map.show_attack_predictions(unit, attack_targets)
 	hex_map.show_selected(tile)
 	_update_status(
-		"選択中: (%d, %d)  HP %d/%d  移動か攻撃を1回だけ実行できます" % [
+		"選択中: (%d, %d)  HP %d/%d  赤マスに数字=与ダメ/被ダメ  マウスを乗せると詳細" % [
 			unit.coord.x,
 			unit.coord.y,
 			unit.hp,
@@ -216,6 +219,63 @@ func _on_player_defeat() -> void:
 	_clear_selection()
 	_update_turn_label()
 	_update_status("敗北... 自軍が全滅しました。")
+
+
+func _on_tile_hovered(tile: HexTile) -> void:
+	if game_result != GameResult.NONE or state != State.UNIT_SELECTED:
+		return
+
+	if _is_attack_target(tile):
+		_show_attack_prediction(tile)
+
+
+func _on_tile_unhovered(_tile: HexTile) -> void:
+	if game_result != GameResult.NONE or state != State.UNIT_SELECTED or selected_unit == null:
+		return
+
+	_update_status(
+		"選択中: (%d, %d)  HP %d/%d  赤マスに数字=与ダメ/被ダメ  マウスを乗せると詳細" % [
+			selected_unit.coord.x,
+			selected_unit.coord.y,
+			selected_unit.hp,
+			selected_unit.max_hp,
+		],
+	)
+
+
+func _show_attack_prediction(tile: HexTile) -> void:
+	var preview: Dictionary = hex_map.predict_attack(selected_unit, tile)
+	if preview.is_empty():
+		return
+
+	_update_status(_format_prediction_message(preview))
+
+
+func _format_prediction_message(preview: Dictionary) -> String:
+	var outgoing_text: String
+	if preview.will_kill_defender:
+		outgoing_text = "敵に %d ダメージ (撃破!)" % preview.outgoing_damage
+	else:
+		outgoing_text = "敵に %d ダメージ (敵HP %d→%d)" % [
+			preview.outgoing_damage,
+			preview.defender_hp_after + preview.outgoing_damage,
+			preview.defender_hp_after,
+		]
+
+	if not preview.counter_possible:
+		return "攻撃予測: %s  /  反撃なし" % outgoing_text
+
+	var counter_text: String
+	if preview.will_kill_attacker:
+		counter_text = "反撃 %d ダメージ (自軍撃破!)" % preview.counter_damage
+	else:
+		counter_text = "反撃 %d ダメージ (自軍HP %d→%d)" % [
+			preview.counter_damage,
+			preview.attacker_hp_after + preview.counter_damage,
+			preview.attacker_hp_after,
+		]
+
+	return "攻撃予測: %s  /  %s" % [outgoing_text, counter_text]
 
 
 func _show_enemy_info(tile: HexTile) -> void:

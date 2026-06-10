@@ -2,6 +2,8 @@ class_name HexMap
 extends Node2D
 
 signal tile_clicked(tile: HexTile)
+signal tile_hovered(tile: HexTile)
+signal tile_unhovered(tile: HexTile)
 
 const HEX_TILE_SCENE: PackedScene = preload("res://scenes/hex_tile.tscn")
 const UNIT_SCENE: PackedScene = preload("res://scenes/unit.tscn")
@@ -32,6 +34,8 @@ func generate_map(map_data: Array) -> void:
 			tile.setup(coord, terrain_value as Terrain.Type)
 			tile.position = HexCoord.axial_to_pixel(q, r, hex_size)
 			tile.clicked.connect(_on_tile_clicked)
+			tile.hovered.connect(_on_tile_hovered)
+			tile.unhovered.connect(_on_tile_unhovered)
 			tiles_root.add_child(tile)
 			tiles[coord] = tile
 
@@ -262,9 +266,27 @@ func move_unit(unit: Unit, target: HexTile) -> bool:
 	return true
 
 
+func predict_attack(attacker: Unit, target_tile: HexTile) -> Dictionary:
+	var defender: Unit = target_tile.unit
+	if defender == null or defender.faction == attacker.faction:
+		return {}
+
+	if not tiles.has(attacker.coord):
+		return {}
+
+	var attacker_tile: HexTile = tiles[attacker.coord]
+	return CombatResolver.predict_exchange(
+		attacker,
+		defender,
+		target_tile,
+		attacker_tile,
+	)
+
+
 func clear_highlights() -> void:
 	for tile: HexTile in tiles.values():
 		tile.set_highlight("")
+		tile.set_damage_preview("")
 
 
 func show_reachable(reachable: Dictionary) -> void:
@@ -282,5 +304,32 @@ func show_attackable(targets: Array[HexTile]) -> void:
 		tile.set_highlight("attackable")
 
 
+func show_attack_predictions(attacker: Unit, targets: Array[HexTile]) -> void:
+	for tile: HexTile in targets:
+		var preview: Dictionary = predict_attack(attacker, tile)
+		tile.set_damage_preview(_format_tile_preview(preview))
+
+
+func _format_tile_preview(preview: Dictionary) -> String:
+	if preview.is_empty():
+		return ""
+
+	if preview.will_kill_defender:
+		return "%d KO" % preview.outgoing_damage
+
+	if preview.counter_possible:
+		return "%d/%d" % [preview.outgoing_damage, preview.counter_damage]
+
+	return "%d" % preview.outgoing_damage
+
+
 func _on_tile_clicked(tile: HexTile) -> void:
 	tile_clicked.emit(tile)
+
+
+func _on_tile_hovered(tile: HexTile) -> void:
+	tile_hovered.emit(tile)
+
+
+func _on_tile_unhovered(tile: HexTile) -> void:
+	tile_unhovered.emit(tile)

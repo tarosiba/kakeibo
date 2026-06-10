@@ -41,7 +41,7 @@ text = "Loading..."
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
-text = "1ターンに移動か攻撃を1回  |  生存かつ射程内なら自動反撃  |  青=移動  赤=攻撃  黄=選択  灰=行動済み"
+text = "赤マス数字=与/被ダメ  |  ホバーで詳細予測  |  青=移動  赤=攻撃  黄=選択  灰=行動済み"
 
 [node name="EndTurnButton" type="Button" parent="UI"]
 unique_name_in_owner = true
