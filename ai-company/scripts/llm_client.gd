@@ -139,10 +139,10 @@ func _http_json(url: String, headers: PackedStringArray, body: Dictionary) -> Di
 	if err != OK:
 		return {"ok": false, "text": "", "code": API_ERROR}
 
-	var packed: PackedStringArray = await _http.request_completed
-	var result_code: int = packed[0]
-	var response_code: int = packed[1]
-	var response_body: PackedByteArray = packed[3]
+	var http_result: Array = await _http.request_completed
+	var result_code: int = http_result[0] as int
+	var response_code: int = http_result[1] as int
+	var response_body: PackedByteArray = http_result[3] as PackedByteArray
 
 	if result_code != HTTPRequest.RESULT_SUCCESS:
 		return {"ok": false, "text": "", "code": API_ERROR}
