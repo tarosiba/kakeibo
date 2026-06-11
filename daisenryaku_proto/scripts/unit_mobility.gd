@@ -6,7 +6,7 @@ enum Class {
 }
 
 
-static func get_class(unit_type: Unit.UnitType) -> Class:
+static func get_mobility_class(unit_type: Unit.UnitType) -> Class:
 	match unit_type:
 		Unit.UnitType.ATTACK_HELI:
 			return Class.AIR
@@ -15,7 +15,7 @@ static func get_class(unit_type: Unit.UnitType) -> Class:
 
 
 static func is_air_unit(unit_type: Unit.UnitType) -> bool:
-	return get_class(unit_type) == Class.AIR
+	return get_mobility_class(unit_type) == Class.AIR
 
 
 static func get_move_cost(tile: HexTile, unit_type: Unit.UnitType) -> int:
