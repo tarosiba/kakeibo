@@ -8,6 +8,8 @@ static func supports_unit_type(unit_type: Unit.UnitType) -> bool:
 		Unit.UnitType.INFANTRY,
 		Unit.UnitType.TANK,
 		Unit.UnitType.ARTILLERY,
+		Unit.UnitType.ATTACK_HELI,
+		Unit.UnitType.AA_GUN,
 	]
 
 
@@ -17,25 +19,31 @@ static func get_required_turns(strength: int) -> int:
 	return 1
 
 
-static func is_in_supply_zone(hex_map: HexMap, coord: Vector2i, faction: Unit.Faction) -> bool:
+static func is_in_supply_zone(
+	hex_map: HexMap,
+	coord: Vector2i,
+	faction: Unit.Faction,
+	unit_type: Unit.UnitType,
+) -> bool:
 	for base_tile: HexTile in hex_map.get_bases_owned_by(faction):
-		if not _is_occupied_city(base_tile, faction):
+		if not _is_occupied_base(base_tile, faction):
+			continue
+		if not _base_matches_unit_supply(base_tile.base_info, unit_type):
 			continue
 		if HexCoord.distance(coord, base_tile.coord) <= 1:
 			return true
 	return false
 
 
-static func can_replenish_at_coord(hex_map: HexMap, coord: Vector2i, faction: Unit.Faction) -> bool:
-	if not is_in_supply_zone(hex_map, coord, faction):
+static func can_replenish_at_coord(hex_map: HexMap, coord: Vector2i, unit: Unit) -> bool:
+	if not is_in_supply_zone(hex_map, coord, unit.faction, unit.unit_type):
 		return false
 
 	var tile: HexTile = hex_map.get_tile(coord)
 	if tile == null:
 		return false
 
-	# 都市マス上にいる場合は、その都市を自軍が占領している必要がある
-	if tile.base_info != null and not tile.base_info.is_owned_by(faction):
+	if tile.base_info != null and not tile.base_info.is_owned_by(unit.faction):
 		return false
 
 	return true
@@ -52,10 +60,16 @@ static func can_start(unit: Unit, hex_map: HexMap) -> bool:
 		return false
 	if unit.hp >= MAX_STRENGTH:
 		return false
-	return can_replenish_at_coord(hex_map, unit.coord, unit.faction)
+	return can_replenish_at_coord(hex_map, unit.coord, unit)
 
 
-static func _is_occupied_city(base_tile: HexTile, faction: Unit.Faction) -> bool:
+static func _base_matches_unit_supply(base_info: BaseInfo, unit_type: Unit.UnitType) -> bool:
+	if UnitMobility.is_air_unit(unit_type):
+		return base_info.is_airfield()
+	return base_info.is_city()
+
+
+static func _is_occupied_base(base_tile: HexTile, faction: Unit.Faction) -> bool:
 	if base_tile.base_info == null:
 		return false
 	return base_tile.base_info.is_owned_by(faction)

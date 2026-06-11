@@ -8,12 +8,19 @@ enum Tool {
 	BASE_PLAYER,
 	BASE_ENEMY,
 	BASE_NEUTRAL,
+	AIRFIELD_PLAYER,
+	AIRFIELD_ENEMY,
+	AIRFIELD_NEUTRAL,
 	UNIT_PLAYER_INFANTRY,
 	UNIT_PLAYER_TANK,
 	UNIT_PLAYER_ARTILLERY,
+	UNIT_PLAYER_AA_GUN,
+	UNIT_PLAYER_ATTACK_HELI,
 	UNIT_ENEMY_INFANTRY,
 	UNIT_ENEMY_TANK,
 	UNIT_ENEMY_ARTILLERY,
+	UNIT_ENEMY_AA_GUN,
+	UNIT_ENEMY_ATTACK_HELI,
 }
 
 const TOOL_LABELS: Dictionary = {
@@ -23,13 +30,20 @@ const TOOL_LABELS: Dictionary = {
 	Tool.TERRAIN_MOUNTAIN: "山",
 	Tool.BASE_PLAYER: "自軍基地",
 	Tool.BASE_ENEMY: "敵基地",
-	Tool.BASE_NEUTRAL: "中立基地",
+	Tool.BASE_NEUTRAL: "中立都市",
+	Tool.AIRFIELD_PLAYER: "自軍飛行場",
+	Tool.AIRFIELD_ENEMY: "敵飛行場",
+	Tool.AIRFIELD_NEUTRAL: "中立飛行場",
 	Tool.UNIT_PLAYER_INFANTRY: "自歩兵",
 	Tool.UNIT_PLAYER_TANK: "自戦車",
 	Tool.UNIT_PLAYER_ARTILLERY: "自砲兵",
+	Tool.UNIT_PLAYER_AA_GUN: "自対空砲",
+	Tool.UNIT_PLAYER_ATTACK_HELI: "自攻撃ヘリ",
 	Tool.UNIT_ENEMY_INFANTRY: "敵歩兵",
 	Tool.UNIT_ENEMY_TANK: "敵戦車",
 	Tool.UNIT_ENEMY_ARTILLERY: "敵砲兵",
+	Tool.UNIT_ENEMY_AA_GUN: "敵対空砲",
+	Tool.UNIT_ENEMY_ATTACK_HELI: "敵攻撃ヘリ",
 }
 
 @onready var hex_map: HexMap = $HexMap
@@ -115,23 +129,37 @@ func _apply_tool(coord: Vector2i) -> void:
 		Tool.TERRAIN_MOUNTAIN:
 			map_data.set_terrain_at(coord, Terrain.Type.MOUNTAIN)
 		Tool.BASE_PLAYER:
-			_place_base(coord, BaseInfo.Owner.PLAYER, "自軍基地")
+			_place_base(coord, BaseInfo.Owner.PLAYER, "自軍都市", BaseInfo.BaseType.CITY)
 		Tool.BASE_ENEMY:
-			_place_base(coord, BaseInfo.Owner.ENEMY, "敵基地")
+			_place_base(coord, BaseInfo.Owner.ENEMY, "敵都市", BaseInfo.BaseType.CITY)
 		Tool.BASE_NEUTRAL:
-			_place_base(coord, BaseInfo.Owner.NEUTRAL, "中立都市")
+			_place_base(coord, BaseInfo.Owner.NEUTRAL, "中立都市", BaseInfo.BaseType.CITY)
+		Tool.AIRFIELD_PLAYER:
+			_place_base(coord, BaseInfo.Owner.PLAYER, "自軍飛行場", BaseInfo.BaseType.AIRFIELD)
+		Tool.AIRFIELD_ENEMY:
+			_place_base(coord, BaseInfo.Owner.ENEMY, "敵飛行場", BaseInfo.BaseType.AIRFIELD)
+		Tool.AIRFIELD_NEUTRAL:
+			_place_base(coord, BaseInfo.Owner.NEUTRAL, "中立飛行場", BaseInfo.BaseType.AIRFIELD)
 		Tool.UNIT_PLAYER_INFANTRY:
 			_place_unit(coord, Unit.Faction.PLAYER, "infantry")
 		Tool.UNIT_PLAYER_TANK:
 			_place_unit(coord, Unit.Faction.PLAYER, "tank")
 		Tool.UNIT_PLAYER_ARTILLERY:
 			_place_unit(coord, Unit.Faction.PLAYER, "artillery")
+		Tool.UNIT_PLAYER_AA_GUN:
+			_place_unit(coord, Unit.Faction.PLAYER, "aa_gun")
+		Tool.UNIT_PLAYER_ATTACK_HELI:
+			_place_unit(coord, Unit.Faction.PLAYER, "attack_heli")
 		Tool.UNIT_ENEMY_INFANTRY:
 			_place_unit(coord, Unit.Faction.ENEMY, "infantry")
 		Tool.UNIT_ENEMY_TANK:
 			_place_unit(coord, Unit.Faction.ENEMY, "tank")
 		Tool.UNIT_ENEMY_ARTILLERY:
 			_place_unit(coord, Unit.Faction.ENEMY, "artillery")
+		Tool.UNIT_ENEMY_AA_GUN:
+			_place_unit(coord, Unit.Faction.ENEMY, "aa_gun")
+		Tool.UNIT_ENEMY_ATTACK_HELI:
+			_place_unit(coord, Unit.Faction.ENEMY, "attack_heli")
 
 
 func _erase_at(coord: Vector2i) -> void:
@@ -140,13 +168,22 @@ func _erase_at(coord: Vector2i) -> void:
 	map_data.remove_unit_at(coord)
 
 
-func _place_base(coord: Vector2i, owner: BaseInfo.Owner, base_name: String) -> void:
+func _place_base(
+	coord: Vector2i,
+	owner: BaseInfo.Owner,
+	base_name: String,
+	base_type: BaseInfo.BaseType = BaseInfo.BaseType.CITY,
+) -> void:
 	map_data.remove_unit_at(coord)
+	var income: int = 300 if owner == BaseInfo.Owner.NEUTRAL else 250
+	if base_type == BaseInfo.BaseType.AIRFIELD:
+		income = 280 if owner == BaseInfo.Owner.NEUTRAL else 200
 	map_data.upsert_base({
 		"coord": coord,
 		"name": base_name,
 		"owner": owner,
-		"income": 250 if owner != BaseInfo.Owner.NEUTRAL else 300,
+		"base_type": base_type,
+		"income": income,
 	})
 
 

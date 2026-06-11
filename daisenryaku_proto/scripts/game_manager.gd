@@ -71,7 +71,13 @@ func _log_unit_chip_status() -> void:
 	UnitAtlas.clear_cache()
 	var custom_loaded: bool = true
 
-	for unit_type: Unit.UnitType in [Unit.UnitType.INFANTRY, Unit.UnitType.TANK, Unit.UnitType.ARTILLERY]:
+	for unit_type: Unit.UnitType in [
+		Unit.UnitType.INFANTRY,
+		Unit.UnitType.TANK,
+		Unit.UnitType.ARTILLERY,
+		Unit.UnitType.AA_GUN,
+		Unit.UnitType.ATTACK_HELI,
+	]:
 		var texture: Texture2D = UnitAtlas.get_texture(unit_type, Unit.Faction.PLAYER)
 		var source: String = UnitAtlas.get_texture_source(unit_type, Unit.Faction.PLAYER)
 		var size_text: String = "missing"
@@ -286,7 +292,7 @@ func _select_unit(unit: Unit, tile: HexTile) -> void:
 
 	_clear_selection()
 	selected_unit = unit
-	reachable = hex_map.get_reachable(unit.coord, unit.move_range)
+	reachable = hex_map.get_reachable(unit.coord, unit.move_range, unit)
 	attack_targets = hex_map.get_attack_targets(unit)
 	state = State.UNIT_SELECTED
 	hex_map.show_reachable(reachable)
@@ -668,7 +674,8 @@ func _refresh_production_panel() -> void:
 	production_panel.visible = true
 	var base_name: String = selected_base_tile.base_info.base_name
 	var produced: String = "済" if selected_base_tile.base_info.produced_this_turn else "可"
-	production_title.text = "%s 生産[%s]" % [base_name, produced]
+	var base_kind: String = "飛行場" if selected_base_tile.base_info.is_airfield() else "都市"
+	production_title.text = "%s (%s) 生産[%s]" % [base_name, base_kind, produced]
 
 	if selected_base_tile.base_info.produced_this_turn:
 		var done_label := Label.new()
@@ -682,11 +689,13 @@ func _refresh_production_panel() -> void:
 		production_buttons.add_child(blocked_label)
 		return
 
-	for entry: Dictionary in UnitCatalog.ENTRIES:
+	var base_type: BaseInfo.BaseType = selected_base_tile.base_info.base_type
+	for entry: Dictionary in UnitCatalog.get_producible_entries(
+		hex_map.get_funds(Unit.Faction.PLAYER),
+		base_type,
+	):
 		var button := Button.new()
-		var affordable: bool = hex_map.can_afford(Unit.Faction.PLAYER, entry.cost)
 		button.text = "%s  $%d" % [entry.name, entry.cost]
-		button.disabled = not affordable
 		button.pressed.connect(_execute_production.bind(entry.id))
 		production_buttons.add_child(button)
 
@@ -742,8 +751,10 @@ func _format_base_message(tile: HexTile) -> String:
 	var production_state: String = "生産済み" if info.produced_this_turn else "生産可能"
 	if tile.unit != null:
 		production_state = "上にユニットあり"
-	return "%s (%d,%d)  収入 +%d/ターン  %s" % [
+	var base_kind: String = "飛行場" if info.is_airfield() else "都市"
+	return "%s [%s] (%d,%d)  収入 +%d/ターン  %s" % [
 		info.base_name,
+		base_kind,
 		tile.coord.x,
 		tile.coord.y,
 		info.income,

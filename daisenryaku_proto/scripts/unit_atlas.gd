@@ -8,6 +8,8 @@ const TYPE_NAMES: Dictionary = {
 	Unit.UnitType.INFANTRY: "infantry",
 	Unit.UnitType.TANK: "tank",
 	Unit.UnitType.ARTILLERY: "artillery",
+	Unit.UnitType.ATTACK_HELI: "attack_heli",
+	Unit.UnitType.AA_GUN: "aa_gun",
 }
 
 const FACTION_NAMES: Dictionary = {
@@ -128,6 +130,10 @@ static func _build_texture(unit_type: Unit.UnitType, faction: Unit.Faction) -> T
 			_draw_tank_chip(image, body, highlight, shadow, outline, accent)
 		Unit.UnitType.ARTILLERY:
 			_draw_artillery_chip(image, body, highlight, shadow, outline, accent)
+		Unit.UnitType.ATTACK_HELI:
+			_draw_attack_heli_chip(image, body, highlight, shadow, outline, accent)
+		Unit.UnitType.AA_GUN:
+			_draw_aa_gun_chip(image, body, highlight, shadow, outline, accent)
 		_:
 			_draw_infantry_chip(image, body, highlight, shadow, outline, accent)
 
@@ -212,6 +218,62 @@ static func _draw_artillery_chip(
 	_set_pixel(image, 27, 15, outline)
 	_set_pixel(image, 28, 15, outline)
 	_set_pixel(image, 16, 16, accent)
+
+
+static func _draw_attack_heli_chip(
+	image: Image,
+	body: Color,
+	highlight: Color,
+	shadow: Color,
+	outline: Color,
+	accent: Color,
+) -> void:
+	for x in range(6, 26):
+		_set_pixel(image, x, 7, outline)
+		_set_pixel(image, x, 8, accent)
+		_set_pixel(image, x, 6, outline)
+
+	_fill_rect(image, Rect2i(12, 12, 12, 8), body)
+	_fill_rect(image, Rect2i(13, 13, 10, 3), highlight)
+	_fill_rect(image, Rect2i(13, 17, 10, 2), shadow)
+	for x in range(20, 28):
+		_set_pixel(image, x, 15, body)
+	_set_pixel(image, 28, 15, outline)
+	_fill_rect(image, Rect2i(10, 18, 4, 5), shadow)
+	_fill_rect(image, Rect2i(22, 18, 3, 4), shadow)
+	_set_pixel(image, 16, 11, accent)
+	_draw_rect_outline(image, Rect2i(12, 12, 12, 8), outline)
+
+
+static func _draw_aa_gun_chip(
+	image: Image,
+	body: Color,
+	highlight: Color,
+	shadow: Color,
+	outline: Color,
+	accent: Color,
+) -> void:
+	_fill_rect(image, Rect2i(7, 18, 18, 6), body)
+	_fill_rect(image, Rect2i(8, 19, 16, 2), highlight)
+	_fill_rect(image, Rect2i(8, 21, 16, 2), shadow)
+	for wheel_x in [9, 13, 17, 21]:
+		_fill_rect(image, Rect2i(wheel_x, 22, 2, 2), outline)
+
+	_fill_rect(image, Rect2i(12, 12, 8, 7), body.lightened(0.08))
+	for y in range(4, 13):
+		for x in range(14, 18):
+			_set_pixel(image, x, y, accent)
+	_set_pixel(image, 15, 3, accent)
+	_set_pixel(image, 16, 3, accent)
+	_set_pixel(image, 14, 4, accent)
+	_set_pixel(image, 17, 4, accent)
+	_fill_rect(image, Rect2i(10, 8, 6, 3), highlight)
+	_set_pixel(image, 11, 7, Color(0.55, 0.85, 0.95))
+	_set_pixel(image, 12, 6, Color(0.55, 0.85, 0.95))
+	_set_pixel(image, 13, 7, Color(0.55, 0.85, 0.95))
+
+	_draw_rect_outline(image, Rect2i(7, 18, 18, 6), outline)
+	_draw_rect_outline(image, Rect2i(12, 12, 8, 7), outline)
 
 
 static func _draw_diamond_outline_corner(image: Image, point: Vector2i, color: Color) -> void:

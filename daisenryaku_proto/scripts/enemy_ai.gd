@@ -29,7 +29,7 @@ static func decide_action(hex_map: HexMap, unit: Unit) -> Dictionary:
 			"target": _pick_weakest_target(attack_targets),
 		}
 
-	var reachable: Dictionary = hex_map.get_reachable(unit.coord, unit.move_range)
+	var reachable: Dictionary = hex_map.get_reachable(unit.coord, unit.move_range, unit)
 	if reachable.is_empty():
 		return {"type": "wait"}
 
@@ -85,7 +85,10 @@ static func decide_production(hex_map: HexMap, tile: HexTile, funds: int) -> Str
 	if not hex_map.can_produce_at(tile, Unit.Faction.ENEMY):
 		return ""
 
-	var affordable: Array[Dictionary] = UnitCatalog.get_affordable_entries(funds)
+	var affordable: Array[Dictionary] = UnitCatalog.get_producible_entries(
+		funds,
+		tile.base_info.base_type,
+	)
 	if affordable.is_empty():
 		return ""
 
@@ -95,7 +98,9 @@ static func decide_production(hex_map: HexMap, tile: HexTile, funds: int) -> Str
 				return ""
 			return _pick_cheapest(affordable)
 		GameDifficulty.Level.DIFFICULT:
-			return _pick_preferred(affordable, ["tank", "artillery", "infantry"])
+			if tile.base_info.is_airfield():
+				return _pick_preferred(affordable, ["attack_heli"])
+			return _pick_preferred(affordable, ["tank", "aa_gun", "artillery", "infantry"])
 		_:
 			return _pick_most_expensive(affordable)
 
