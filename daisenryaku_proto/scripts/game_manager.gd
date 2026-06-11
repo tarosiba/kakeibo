@@ -65,15 +65,29 @@ func _ready() -> void:
 
 func _log_unit_chip_status() -> void:
 	UnitAtlas.clear_cache()
+	var custom_loaded: bool = true
+
 	for unit_type: Unit.UnitType in [Unit.UnitType.INFANTRY, Unit.UnitType.TANK, Unit.UnitType.ARTILLERY]:
 		var texture: Texture2D = UnitAtlas.get_texture(unit_type, Unit.Faction.PLAYER)
 		var source: String = UnitAtlas.get_texture_source(unit_type, Unit.Faction.PLAYER)
 		var size_text: String = "missing"
 		if texture != null:
 			size_text = "%dx%d" % [texture.get_width(), texture.get_height()]
+		if not source.begins_with("res://"):
+			custom_loaded = false
 		print(
 			"UnitChip %s -> %s (%s)"
 			% [UnitAtlas.TYPE_NAMES.get(unit_type, "?"), source, size_text]
+		)
+
+	for unit: Unit in hex_map.units:
+		unit._update_visual()
+
+	if custom_loaded:
+		_update_status("自作ユニット画像を読み込みました。")
+	else:
+		_update_status(
+			"警告: ユニット画像の読込に失敗。assets/units/ のPNGと scripts/ を確認してください。"
 		)
 
 

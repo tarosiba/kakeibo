@@ -16,7 +16,7 @@ const FACTION_COLORS: Dictionary = {
 	Faction.PLAYER: Color(0.28, 0.52, 0.92),
 	Faction.ENEMY: Color(0.88, 0.22, 0.22),
 }
-const CHIP_DISPLAY_SIZE: float = 40.0
+const CHIP_DISPLAY_SIZE: float = 52.0
 
 @export var unit_name: String = "ユニット"
 @export var unit_type: UnitType = UnitType.INFANTRY
@@ -76,6 +76,8 @@ func _update_chip_sprite() -> void:
 		return
 
 	chip_sprite.texture = UnitAtlas.get_texture(unit_type, faction)
+	chip_sprite.z_index = 2
+	chip_sprite.centered = true
 	if UnitAtlas.uses_faction_tint(unit_type, faction):
 		chip_sprite.modulate = faction_color
 	else:

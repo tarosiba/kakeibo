@@ -67,15 +67,19 @@ static func _load_custom_texture(unit_type: Unit.UnitType, faction: Unit.Faction
 
 	var faction_path: String = _find_existing_asset("%s%s_%s" % [ASSETS_DIR, type_name, faction_name])
 	if faction_path != "":
-		_uses_faction_tint[key] = false
-		_texture_sources[key] = faction_path
-		return _load_texture_from_file(faction_path)
+		var texture: Texture2D = _load_texture_from_file(faction_path)
+		if texture != null:
+			_uses_faction_tint[key] = false
+			_texture_sources[key] = faction_path
+			return texture
 
 	var generic_path: String = _find_existing_asset("%s%s" % [ASSETS_DIR, type_name])
 	if generic_path != "":
-		_uses_faction_tint[key] = false
-		_texture_sources[key] = generic_path
-		return _load_texture_from_file(generic_path)
+		var texture: Texture2D = _load_texture_from_file(generic_path)
+		if texture != null:
+			_uses_faction_tint[key] = false
+			_texture_sources[key] = generic_path
+			return texture
 
 	return null
 
@@ -93,13 +97,19 @@ static func _asset_exists(path: String) -> bool:
 
 
 static func _load_texture_from_file(path: String) -> Texture2D:
-	var image := Image.new()
-	var error: Error = image.load(path)
-	if error != OK:
-		push_warning("UnitAtlas: failed to load %s (error %d)" % [path, error])
-		return null
+	if ResourceLoader.exists(path):
+		var loaded: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE)
+		if loaded is Texture2D:
+			return loaded
 
-	return ImageTexture.create_from_image(image)
+	var disk_path: String = ProjectSettings.globalize_path(path)
+	if disk_path != "" and FileAccess.file_exists(disk_path):
+		var image := Image.new()
+		if image.load(disk_path) == OK:
+			return ImageTexture.create_from_image(image)
+
+	push_warning("UnitAtlas: failed to load %s" % path)
+	return null
 
 
 static func _build_texture(unit_type: Unit.UnitType, faction: Unit.Faction) -> Texture2D:
