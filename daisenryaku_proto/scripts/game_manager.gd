@@ -55,10 +55,26 @@ func _ready() -> void:
 	_build_save_load_buttons()
 	production_panel.visible = false
 
+	_log_unit_chip_status()
+
 	if GameSession.has_resume_save():
 		_apply_save_data(GameSession.take_resume_save())
 	else:
 		_start_player_turn()
+
+
+func _log_unit_chip_status() -> void:
+	UnitAtlas.clear_cache()
+	for unit_type: Unit.UnitType in [Unit.UnitType.INFANTRY, Unit.UnitType.TANK, Unit.UnitType.ARTILLERY]:
+		var texture: Texture2D = UnitAtlas.get_texture(unit_type, Unit.Faction.PLAYER)
+		var source: String = UnitAtlas.get_texture_source(unit_type, Unit.Faction.PLAYER)
+		var size_text: String = "missing"
+		if texture != null:
+			size_text = "%dx%d" % [texture.get_width(), texture.get_height()]
+		print(
+			"UnitChip %s -> %s (%s)"
+			% [UnitAtlas.TYPE_NAMES.get(unit_type, "?"), source, size_text]
+		)
 
 
 func _on_menu_pressed() -> void:

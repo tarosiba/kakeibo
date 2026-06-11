@@ -17,21 +17,36 @@ const FACTION_NAMES: Dictionary = {
 
 static var _cache: Dictionary = {}
 static var _uses_faction_tint: Dictionary = {}
+static var _texture_sources: Dictionary = {}
 
 
 static func get_texture(unit_type: Unit.UnitType, faction: Unit.Faction) -> Texture2D:
 	var key: String = _cache_key(unit_type, faction)
+	var custom_texture: Texture2D = _load_custom_texture(unit_type, faction)
+	if custom_texture != null:
+		return custom_texture
+
 	if _cache.has(key):
 		return _cache[key]
 
-	var texture: Texture2D = _load_custom_texture(unit_type, faction)
-	if texture == null:
-		_uses_faction_tint[key] = false
-		texture = _build_texture(unit_type, faction)
-	else:
-		_cache[key] = texture
-
+	_uses_faction_tint[key] = false
+	_texture_sources[key] = "procedural"
+	var texture: Texture2D = _build_texture(unit_type, faction)
 	return texture
+
+
+static func get_texture_source(unit_type: Unit.UnitType, faction: Unit.Faction) -> String:
+	var key: String = _cache_key(unit_type, faction)
+	if _texture_sources.has(key):
+		return _texture_sources[key]
+	get_texture(unit_type, faction)
+	return _texture_sources.get(key, "unknown")
+
+
+static func clear_cache() -> void:
+	_cache.clear()
+	_uses_faction_tint.clear()
+	_texture_sources.clear()
 
 
 static func uses_faction_tint(unit_type: Unit.UnitType, faction: Unit.Faction) -> bool:
@@ -51,26 +66,32 @@ static func _load_custom_texture(unit_type: Unit.UnitType, faction: Unit.Faction
 	var key: String = _cache_key(unit_type, faction)
 
 	var faction_path: String = "%s%s_%s.png" % [ASSETS_DIR, type_name, faction_name]
-	if ResourceLoader.exists(faction_path):
+	if _asset_exists(faction_path):
 		_uses_faction_tint[key] = false
-		return _cache_loaded_texture(key, faction_path)
+		_texture_sources[key] = faction_path
+		return _load_texture_from_file(faction_path)
 
 	var generic_path: String = "%s%s.png" % [ASSETS_DIR, type_name]
-	if ResourceLoader.exists(generic_path):
+	if _asset_exists(generic_path):
 		_uses_faction_tint[key] = false
-		return _cache_loaded_texture(key, generic_path)
+		_texture_sources[key] = generic_path
+		return _load_texture_from_file(generic_path)
 
 	return null
 
 
-static func _cache_loaded_texture(key: String, path: String) -> Texture2D:
-	var texture: Texture2D = load(path)
-	if texture == null:
-		_uses_faction_tint.erase(key)
+static func _asset_exists(path: String) -> bool:
+	return ResourceLoader.exists(path) or FileAccess.file_exists(path)
+
+
+static func _load_texture_from_file(path: String) -> Texture2D:
+	var image := Image.new()
+	var error: Error = image.load(path)
+	if error != OK:
+		push_warning("UnitAtlas: failed to load %s (error %d)" % [path, error])
 		return null
 
-	_cache[key] = texture
-	return texture
+	return ImageTexture.create_from_image(image)
 
 
 static func _build_texture(unit_type: Unit.UnitType, faction: Unit.Faction) -> Texture2D:
