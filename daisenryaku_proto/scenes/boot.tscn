@@ -1,6 +1,18 @@
-[gd_scene load_steps=2 format=3 uid="uid://boot_scene"]
+[gd_scene load_steps=4 format=3 uid="uid://boot_scene"]
 
 [ext_resource type="Script" path="res://scripts/boot.gd" id="1_boot"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu_background.png" id="2_menu_bg"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.08, 0.1, 0.14, 0.65)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 16.0
+content_margin_right = 16.0
+content_margin_bottom = 16.0
 
 [node name="Boot" type="Control"]
 layout_mode = 3
@@ -10,6 +22,29 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_boot")
+
+[node name="BackgroundLayer" type="CanvasLayer" parent="."]
+layer = -10
+
+[node name="MenuBackground" type="TextureRect" parent="BackgroundLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_menu_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="DimOverlay" type="ColorRect" parent="BackgroundLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.02, 0.04, 0.1, 0.15)
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -24,18 +59,20 @@ offset_right = 240.0
 offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
 
 [node name="Title" type="Label" parent="Panel/VBox"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.95, 0.95, 1)
 text = "大戦略プロトタイプ"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
+theme_override_colors/font_color = Color(0.75, 0.85, 0.95, 1)
 text = "Godot 4 Hex Strategy"
 horizontal_alignment = 1
 
@@ -76,7 +113,7 @@ size_flags_horizontal = 3
 [node name="DifficultyDescription" type="Label" parent="Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_colors/font_color = Color(0.7, 0.8, 0.9, 1)
 text = "標準バランス"
 autowrap_mode = 2
 

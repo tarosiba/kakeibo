@@ -1,7 +1,27 @@
 class_name EnemyAI
 
 
+static func should_replenish(hex_map: HexMap, unit: Unit) -> bool:
+	if not ReplenishRules.can_start(unit, hex_map):
+		return false
+
+	if unit.hp <= 5:
+		return true
+
+	if unit.hp >= 10:
+		return false
+
+	var attack_targets: Array[HexTile] = hex_map.get_attack_targets(unit)
+	if not attack_targets.is_empty():
+		return false
+
+	return unit.hp <= 7
+
+
 static func decide_action(hex_map: HexMap, unit: Unit) -> Dictionary:
+	if should_replenish(hex_map, unit):
+		return {"type": "replenish"}
+
 	var attack_targets: Array[HexTile] = hex_map.get_attack_targets(unit)
 	if not attack_targets.is_empty():
 		return {

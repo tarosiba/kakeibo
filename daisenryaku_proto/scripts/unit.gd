@@ -17,6 +17,7 @@ const FACTION_COLORS: Dictionary = {
 	Faction.ENEMY: Color(0.88, 0.22, 0.22),
 }
 const CHIP_DISPLAY_SIZE: float = 56.0
+const STRENGTH_BAR_WIDTH: float = 22.0
 
 @export var unit_name: String = "ユニット"
 @export var unit_type: UnitType = UnitType.INFANTRY
@@ -24,15 +25,16 @@ const CHIP_DISPLAY_SIZE: float = 56.0
 @export var attack_range: int = 1
 @export var attack_power: int = 4
 @export var defense: int = 1
-@export var max_hp: int = 10
+@export var max_hp: int = ReplenishRules.MAX_STRENGTH
 @export var faction: Faction = Faction.PLAYER
 @export var faction_color: Color = Color(0.28, 0.52, 0.92)
 
 @onready var chip_sprite: Sprite2D = $ChipSprite
 
 var coord: Vector2i = Vector2i.ZERO
-var hp: int = 10
+var hp: int = ReplenishRules.MAX_STRENGTH
 var has_acted: bool = false
+var replenish_turns_left: int = 0
 
 
 static func get_faction_color(faction: Faction) -> Color:
@@ -40,7 +42,8 @@ static func get_faction_color(faction: Faction) -> Color:
 
 
 func _ready() -> void:
-	hp = max_hp
+	max_hp = ReplenishRules.MAX_STRENGTH
+	hp = mini(hp, max_hp)
 	faction_color = get_faction_color(faction)
 	_update_visual()
 
@@ -54,20 +57,82 @@ func is_alive() -> bool:
 	return hp > 0
 
 
+func is_replenishing() -> bool:
+	return replenish_turns_left > 0
+
+
+func can_take_action() -> bool:
+	return is_alive() and not has_acted and not is_replenishing()
+
+
+func start_replenish() -> void:
+	if hp >= max_hp:
+		return
+	replenish_turns_left = ReplenishRules.get_required_turns(hp)
+	mark_acted()
+	_update_visual()
+
+
+func cancel_replenish() -> void:
+	replenish_turns_left = 0
+	has_acted = false
+	_update_visual()
+
+
+func complete_replenish() -> void:
+	hp = max_hp
+	replenish_turns_left = 0
+	has_acted = false
+	_update_visual()
+
+
+func tick_replenish(hex_map: HexMap) -> bool:
+	if replenish_turns_left <= 0:
+		return false
+
+	if not ReplenishRules.can_replenish_at_coord(hex_map, coord, faction):
+		cancel_replenish()
+		return true
+
+	replenish_turns_left -= 1
+	if replenish_turns_left <= 0:
+		complete_replenish()
+	else:
+		has_acted = true
+		_update_visual()
+	return true
+
+
 func mark_acted() -> void:
 	has_acted = true
 	_update_visual()
 
 
 func reset_turn() -> void:
-	has_acted = false
+	if is_replenishing():
+		has_acted = true
+	else:
+		has_acted = false
 	_update_visual()
+
+
+func get_status_suffix() -> String:
+	if is_replenishing():
+		return " [補充中:残%d]" % replenish_turns_left
+	if has_acted:
+		return " [待機]"
+	return ""
 
 
 func _update_visual() -> void:
 	faction_color = get_faction_color(faction)
 	_update_chip_sprite()
-	modulate = Color(0.55, 0.55, 0.55) if has_acted else Color.WHITE
+	if is_replenishing():
+		modulate = Color(0.75, 0.85, 1.0)
+	elif has_acted:
+		modulate = Color(0.55, 0.55, 0.55)
+	else:
+		modulate = Color.WHITE
 	queue_redraw()
 
 
@@ -91,20 +156,36 @@ func _update_chip_sprite() -> void:
 
 
 func _draw() -> void:
-	_draw_hp_bar()
+	_draw_strength_bar()
+	_draw_strength_number()
 
 
-func _draw_hp_bar() -> void:
-	var bar_width: float = 24.0 if unit_type == UnitType.TANK else 22.0
+func _draw_strength_bar() -> void:
 	var bar_height: float = 4.0
 	var bar_y: float = -22.0
 	var ratio: float = float(hp) / float(max_hp)
 
-	draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width, bar_height), Color(0.15, 0.15, 0.15))
 	draw_rect(
-		Rect2(-bar_width * 0.5, bar_y, bar_width * ratio, bar_height),
+		Rect2(-STRENGTH_BAR_WIDTH * 0.5, bar_y, STRENGTH_BAR_WIDTH, bar_height),
+		Color(0.15, 0.15, 0.15),
+	)
+	draw_rect(
+		Rect2(-STRENGTH_BAR_WIDTH * 0.5, bar_y, STRENGTH_BAR_WIDTH * ratio, bar_height),
 		_get_hp_color(ratio),
 	)
+
+
+func _draw_strength_number() -> void:
+	var font: Font = ThemeDB.fallback_font
+	var font_size: int = 14
+	var text: String = str(hp)
+	var text_size: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
+	var text_pos := Vector2(-text_size.x * 0.5, 18.0)
+	draw_rect(
+		Rect2(text_pos.x - 2.0, text_pos.y - text_size.y, text_size.x + 4.0, text_size.y + 2.0),
+		Color(0.0, 0.0, 0.0, 0.55),
+	)
+	draw_string(font, text_pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color.WHITE)
 
 
 func _get_hp_color(ratio: float) -> Color:

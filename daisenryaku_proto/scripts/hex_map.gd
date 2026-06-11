@@ -113,8 +113,10 @@ func _spawn_unit_from_config(config: Dictionary, faction: Unit.Faction) -> Unit:
 	if unit == null:
 		return null
 
-	unit.hp = clampi(config.get("hp", max_hp), 0, max_hp)
-	if config.get("has_acted", false):
+	unit.max_hp = ReplenishRules.MAX_STRENGTH
+	unit.hp = clampi(config.get("hp", max_hp), 0, unit.max_hp)
+	unit.replenish_turns_left = maxi(0, config.get("replenish_turns_left", 0))
+	if config.get("has_acted", false) or unit.is_replenishing():
 		unit.mark_acted()
 	else:
 		unit.reset_turn()
@@ -150,8 +152,9 @@ func spawn_unit(
 	unit.attack_range = attack_range
 	unit.attack_power = attack_power
 	unit.defense = defense
-	unit.max_hp = max_hp
-	unit.hp = max_hp
+	unit.max_hp = ReplenishRules.MAX_STRENGTH
+	unit.hp = mini(maxi(1, max_hp), ReplenishRules.MAX_STRENGTH)
+	unit.replenish_turns_left = 0
 	unit.coord = coord
 	unit.position = tile.position
 	tile.unit = unit
@@ -247,6 +250,7 @@ func _encode_runtime_unit(unit: Unit) -> Dictionary:
 		"hp": unit.hp,
 		"max_hp": unit.max_hp,
 		"has_acted": unit.has_acted,
+		"replenish_turns_left": unit.replenish_turns_left,
 		"color": unit.faction_color,
 		"catalog_id": catalog_id,
 	}
@@ -263,9 +267,49 @@ func get_units_by_faction(faction: Unit.Faction) -> Array[Unit]:
 func get_idle_units_by_faction(faction: Unit.Faction) -> Array[Unit]:
 	var result: Array[Unit] = []
 	for unit: Unit in units:
-		if unit.is_alive() and unit.faction == faction and not unit.has_acted:
+		if unit.can_take_action() and unit.faction == faction:
 			result.append(unit)
 	return result
+
+
+func process_replenishment_turn_start(faction: Unit.Faction) -> Array[String]:
+	var messages: Array[String] = []
+	for unit: Unit in units:
+		if not unit.is_alive() or unit.faction != faction:
+			continue
+		if not unit.is_replenishing():
+			continue
+
+		var strength_before: int = unit.hp
+		var turns_before: int = unit.replenish_turns_left
+		unit.tick_replenish(self)
+
+		if not unit.is_replenishing() and unit.hp > strength_before:
+			messages.append("%s の補充完了 (戦力10)" % unit.unit_name)
+		elif unit.is_replenishing() and unit.replenish_turns_left < turns_before:
+			messages.append("%s 補充中 (残%dターン)" % [unit.unit_name, unit.replenish_turns_left])
+		elif not unit.is_replenishing() and turns_before > 0 and unit.hp == strength_before:
+			messages.append("%s の補充が中断されました" % unit.unit_name)
+	return messages
+
+
+func can_start_replenish(unit: Unit) -> bool:
+	return ReplenishRules.can_start(unit, self)
+
+
+func start_replenish(unit: Unit) -> Dictionary:
+	if not can_start_replenish(unit):
+		var tile: HexTile = get_tile(unit.coord)
+		if tile != null and tile.base_info != null and not tile.base_info.is_owned_by(unit.faction):
+			return {"success": false, "reason": "都市を占領してから補充できます。"}
+		return {"success": false, "reason": "自軍占領都市の近くでのみ補充できます。"}
+
+	var turns_needed: int = ReplenishRules.get_required_turns(unit.hp)
+	unit.start_replenish()
+	return {
+		"success": true,
+		"turns_needed": turns_needed,
+	}
 
 
 func count_idle_units(faction: Unit.Faction) -> int:
