@@ -69,8 +69,36 @@ static func decide_production(hex_map: HexMap, tile: HexTile, funds: int) -> Str
 	if affordable.is_empty():
 		return ""
 
-	var best_entry: Dictionary = affordable[0]
-	for entry: Dictionary in affordable:
+	match GameSession.difficulty:
+		GameDifficulty.Level.EASY:
+			if randf() < 0.45:
+				return ""
+			return _pick_cheapest(affordable)
+		GameDifficulty.Level.DIFFICULT:
+			return _pick_preferred(affordable, ["tank", "artillery", "infantry"])
+		_:
+			return _pick_most_expensive(affordable)
+
+
+static func _pick_cheapest(entries: Array[Dictionary]) -> String:
+	var best_entry: Dictionary = entries[0]
+	for entry: Dictionary in entries:
+		if entry.cost < best_entry.cost:
+			best_entry = entry
+	return best_entry.id
+
+
+static func _pick_most_expensive(entries: Array[Dictionary]) -> String:
+	var best_entry: Dictionary = entries[0]
+	for entry: Dictionary in entries:
 		if entry.cost > best_entry.cost:
 			best_entry = entry
 	return best_entry.id
+
+
+static func _pick_preferred(entries: Array[Dictionary], preferred_ids: Array) -> String:
+	for preferred_id: String in preferred_ids:
+		for entry: Dictionary in entries:
+			if entry.id == preferred_id:
+				return entry.id
+	return _pick_most_expensive(entries)

@@ -14,14 +14,56 @@ var enemy_funds: int = 800
 
 
 static func from_map01() -> MapData:
+	return _from_map_constants(
+		"map_01",
+		Map01.DATA,
+		Map01.BASES,
+		Map01.PLAYER_UNITS,
+		Map01.ENEMY_UNITS,
+		Map01.INITIAL_PLAYER_FUNDS,
+		Map01.INITIAL_ENEMY_FUNDS,
+	)
+
+
+static func from_map02() -> MapData:
+	return _from_map_constants(
+		"map_02",
+		Map02.DATA,
+		Map02.BASES,
+		Map02.PLAYER_UNITS,
+		Map02.ENEMY_UNITS,
+		Map02.INITIAL_PLAYER_FUNDS,
+		Map02.INITIAL_ENEMY_FUNDS,
+	)
+
+
+static func from_id(map_id: String) -> MapData:
+	match map_id:
+		"map_02":
+			return from_map02()
+		"map_01":
+			return from_map01()
+		_:
+			return from_map01()
+
+
+static func _from_map_constants(
+	map_name: String,
+	terrain_data: Array,
+	bases: Array,
+	player_units: Array,
+	enemy_units: Array,
+	player_funds: int,
+	enemy_funds: int,
+) -> MapData:
 	var data := MapData.new()
-	data.map_name = "map_01"
-	data.terrain = _clone_grid(Map01.DATA)
-	data.bases = _clone_entries(Map01.BASES)
-	data.player_units = _clone_entries(Map01.PLAYER_UNITS)
-	data.enemy_units = _clone_entries(Map01.ENEMY_UNITS)
-	data.player_funds = Map01.INITIAL_PLAYER_FUNDS
-	data.enemy_funds = Map01.INITIAL_ENEMY_FUNDS
+	data.map_name = map_name
+	data.terrain = _clone_grid(terrain_data)
+	data.bases = _clone_entries(bases)
+	data.player_units = _clone_entries(player_units)
+	data.enemy_units = _clone_entries(enemy_units)
+	data.player_funds = player_funds
+	data.enemy_funds = enemy_funds
 	return data
 
 
