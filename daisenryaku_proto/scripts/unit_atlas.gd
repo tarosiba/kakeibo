@@ -2,21 +2,79 @@ class_name UnitAtlas
 
 const CHIP_WIDTH: int = 32
 const CHIP_HEIGHT: int = 32
+const ASSETS_DIR: String = "res://assets/units/"
+
+const TYPE_NAMES: Dictionary = {
+	Unit.UnitType.INFANTRY: "infantry",
+	Unit.UnitType.TANK: "tank",
+	Unit.UnitType.ARTILLERY: "artillery",
+}
+
+const FACTION_NAMES: Dictionary = {
+	Unit.Faction.PLAYER: "player",
+	Unit.Faction.ENEMY: "enemy",
+}
 
 static var _cache: Dictionary = {}
+static var _uses_faction_tint: Dictionary = {}
 
 
 static func get_texture(unit_type: Unit.UnitType, faction: Unit.Faction) -> Texture2D:
-	var key: String = "%d_%d" % [unit_type, faction]
+	var key: String = _cache_key(unit_type, faction)
 	if _cache.has(key):
 		return _cache[key]
 
-	var texture: Texture2D = _build_texture(unit_type, faction)
+	var texture: Texture2D = _load_custom_texture(unit_type, faction)
+	if texture == null:
+		_uses_faction_tint[key] = false
+		texture = _build_texture(unit_type, faction)
+	else:
+		_cache[key] = texture
+
+	return texture
+
+
+static func uses_faction_tint(unit_type: Unit.UnitType, faction: Unit.Faction) -> bool:
+	var key: String = _cache_key(unit_type, faction)
+	if not _cache.has(key):
+		get_texture(unit_type, faction)
+	return _uses_faction_tint.get(key, false)
+
+
+static func _cache_key(unit_type: Unit.UnitType, faction: Unit.Faction) -> String:
+	return "%d_%d" % [unit_type, faction]
+
+
+static func _load_custom_texture(unit_type: Unit.UnitType, faction: Unit.Faction) -> Texture2D:
+	var type_name: String = TYPE_NAMES.get(unit_type, "infantry")
+	var faction_name: String = FACTION_NAMES.get(faction, "player")
+	var key: String = _cache_key(unit_type, faction)
+
+	var faction_path: String = "%s%s_%s.png" % [ASSETS_DIR, type_name, faction_name]
+	if ResourceLoader.exists(faction_path):
+		_uses_faction_tint[key] = false
+		return _cache_loaded_texture(key, faction_path)
+
+	var generic_path: String = "%s%s.png" % [ASSETS_DIR, type_name]
+	if ResourceLoader.exists(generic_path):
+		_uses_faction_tint[key] = true
+		return _cache_loaded_texture(key, generic_path)
+
+	return null
+
+
+static func _cache_loaded_texture(key: String, path: String) -> Texture2D:
+	var texture: Texture2D = load(path)
+	if texture == null:
+		_uses_faction_tint.erase(key)
+		return null
+
 	_cache[key] = texture
 	return texture
 
 
 static func _build_texture(unit_type: Unit.UnitType, faction: Unit.Faction) -> Texture2D:
+	var key: String = _cache_key(unit_type, faction)
 	var image := Image.create(CHIP_WIDTH, CHIP_HEIGHT, false, Image.FORMAT_RGBA8)
 	image.fill(Color(0, 0, 0, 0))
 
@@ -34,7 +92,9 @@ static func _build_texture(unit_type: Unit.UnitType, faction: Unit.Faction) -> T
 		_:
 			_draw_infantry_chip(image, body, highlight, shadow, outline, accent)
 
-	return ImageTexture.create_from_image(image)
+	var texture: Texture2D = ImageTexture.create_from_image(image)
+	_cache[key] = texture
+	return texture
 
 
 static func _draw_infantry_chip(

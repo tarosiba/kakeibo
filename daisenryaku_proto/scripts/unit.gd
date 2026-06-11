@@ -67,6 +67,10 @@ func _update_visual() -> void:
 	faction_color = get_faction_color(faction)
 	if chip_sprite != null:
 		chip_sprite.texture = UnitAtlas.get_texture(unit_type, faction)
+		if UnitAtlas.uses_faction_tint(unit_type, faction):
+			chip_sprite.modulate = faction_color
+		else:
+			chip_sprite.modulate = Color.WHITE
 	modulate = Color(0.55, 0.55, 0.55) if has_acted else Color.WHITE
 	queue_redraw()
 
