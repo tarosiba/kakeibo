@@ -1,5 +1,8 @@
 class_name Map01
 
+const PLAYER_COLOR: Color = Color(0.28, 0.52, 0.92)
+const ENEMY_COLOR: Color = Color(0.88, 0.22, 0.22)
+
 # 0=plain, 1=forest, 2=sea, 3=mountain
 const DATA: Array = [
 	[0, 0, 0, 1, 1, 0, 0, 0, 2, 2, 0, 0],
@@ -48,7 +51,7 @@ const PLAYER_UNITS: Array[Dictionary] = [
 		"atk": 5,
 		"def": 2,
 		"hp": 12,
-		"color": Unit.get_faction_color(Unit.Faction.PLAYER),
+		"color": PLAYER_COLOR,
 	},
 	{
 		"coord": Vector2i(1, 6),
@@ -59,7 +62,7 @@ const PLAYER_UNITS: Array[Dictionary] = [
 		"atk": 3,
 		"def": 1,
 		"hp": 8,
-		"color": Unit.get_faction_color(Unit.Faction.PLAYER),
+		"color": PLAYER_COLOR,
 	},
 	{
 		"coord": Vector2i(0, 4),
@@ -70,7 +73,7 @@ const PLAYER_UNITS: Array[Dictionary] = [
 		"atk": 4,
 		"def": 0,
 		"hp": 6,
-		"color": Unit.get_faction_color(Unit.Faction.PLAYER),
+		"color": PLAYER_COLOR,
 	},
 ]
 
@@ -84,7 +87,7 @@ const ENEMY_UNITS: Array[Dictionary] = [
 		"atk": 4,
 		"def": 1,
 		"hp": 10,
-		"color": Unit.get_faction_color(Unit.Faction.ENEMY),
+		"color": ENEMY_COLOR,
 	},
 	{
 		"coord": Vector2i(8, 6),
@@ -95,7 +98,7 @@ const ENEMY_UNITS: Array[Dictionary] = [
 		"atk": 3,
 		"def": 1,
 		"hp": 8,
-		"color": Unit.get_faction_color(Unit.Faction.ENEMY),
+		"color": ENEMY_COLOR,
 	},
 	{
 		"coord": Vector2i(6, 2),
@@ -106,6 +109,6 @@ const ENEMY_UNITS: Array[Dictionary] = [
 		"atk": 3,
 		"def": 0,
 		"hp": 6,
-		"color": Unit.get_faction_color(Unit.Faction.ENEMY),
+		"color": ENEMY_COLOR,
 	},
 ]
