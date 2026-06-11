@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://assets/ui/menu_background.png" id="2_menu_bg"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.08, 0.1, 0.14, 0.72)
+bg_color = Color(0.08, 0.1, 0.14, 0.65)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -23,8 +23,10 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_boot")
 
-[node name="MenuBackground" type="TextureRect" parent="."]
-layout_mode = 1
+[node name="BackgroundLayer" type="CanvasLayer" parent="."]
+layer = -10
+
+[node name="MenuBackground" type="TextureRect" parent="BackgroundLayer"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -35,15 +37,14 @@ texture = ExtResource("2_menu_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="DimOverlay" type="ColorRect" parent="."]
-layout_mode = 1
+[node name="DimOverlay" type="ColorRect" parent="BackgroundLayer"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.02, 0.04, 0.1, 0.18)
+color = Color(0.02, 0.04, 0.1, 0.15)
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
