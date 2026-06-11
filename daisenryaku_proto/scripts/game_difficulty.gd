@@ -46,13 +46,13 @@ static func _apply_easy(map_data: MapData) -> void:
 
 	for unit: Dictionary in map_data.player_units:
 		unit.atk += 1
-		unit.hp += 2
-		unit.max_hp = unit.get("max_hp", unit.hp) + 2
+		unit.hp = mini(ReplenishRules.MAX_STRENGTH, unit.hp + 2)
+		unit.max_hp = ReplenishRules.MAX_STRENGTH
 
 	for unit: Dictionary in map_data.enemy_units:
 		unit.atk = maxi(1, unit.atk - 1)
-		unit.hp = maxi(4, unit.hp - 1)
-		unit.max_hp = maxi(4, unit.get("max_hp", unit.hp) - 1)
+		unit.hp = maxi(1, unit.hp - 1)
+		unit.max_hp = ReplenishRules.MAX_STRENGTH
 
 	for base: Dictionary in map_data.bases:
 		if base.owner == BaseInfo.Owner.NEUTRAL:
@@ -69,5 +69,5 @@ static func _apply_difficult(map_data: MapData) -> void:
 
 	for unit: Dictionary in map_data.enemy_units:
 		unit.atk += 1
-		unit.hp += 2
-		unit.max_hp = unit.get("max_hp", unit.hp) + 2
+		unit.hp = mini(ReplenishRules.MAX_STRENGTH, unit.hp + 2)
+		unit.max_hp = ReplenishRules.MAX_STRENGTH

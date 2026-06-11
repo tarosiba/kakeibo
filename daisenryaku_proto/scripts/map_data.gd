@@ -247,9 +247,10 @@ static func _decode_units(raw_units: Array) -> Array:
 			"range": item.get("range", entry.get("range", 1)),
 			"atk": item.get("atk", entry.get("atk", 3)),
 			"def": item.get("def", entry.get("def", 1)),
-			"hp": item.get("hp", entry.get("hp", 8)),
-			"max_hp": item.get("max_hp", item.get("hp", entry.get("hp", 8))),
+			"hp": item.get("hp", entry.get("hp", ReplenishRules.MAX_STRENGTH)),
+			"max_hp": ReplenishRules.MAX_STRENGTH,
 			"has_acted": item.get("has_acted", false),
+			"replenish_turns_left": item.get("replenish_turns_left", 0),
 			"color": _decode_color(item.get("color", Color.WHITE)),
 			"catalog_id": catalog_id,
 		})
@@ -289,6 +290,8 @@ func _encode_units(units: Array) -> Array:
 		}
 		if unit.get("has_acted", false):
 			entry["has_acted"] = true
+		if unit.get("replenish_turns_left", 0) > 0:
+			entry["replenish_turns_left"] = unit.replenish_turns_left
 		result.append(entry)
 	return result
 

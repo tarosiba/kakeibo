@@ -60,7 +60,7 @@ const PLAYER_UNITS: Array[Dictionary] = [
 		"range": 1,
 		"atk": 5,
 		"def": 2,
-		"hp": 12,
+		"hp": 10,
 		"color": PLAYER_COLOR,
 	},
 	{
@@ -82,7 +82,7 @@ const PLAYER_UNITS: Array[Dictionary] = [
 		"range": 2,
 		"atk": 4,
 		"def": 0,
-		"hp": 6,
+		"hp": 7,
 		"color": PLAYER_COLOR,
 	},
 	{
@@ -107,7 +107,7 @@ const ENEMY_UNITS: Array[Dictionary] = [
 		"range": 1,
 		"atk": 5,
 		"def": 2,
-		"hp": 12,
+		"hp": 10,
 		"color": ENEMY_COLOR,
 	},
 	{
@@ -129,7 +129,7 @@ const ENEMY_UNITS: Array[Dictionary] = [
 		"range": 2,
 		"atk": 4,
 		"def": 0,
-		"hp": 6,
+		"hp": 7,
 		"color": ENEMY_COLOR,
 	},
 	{

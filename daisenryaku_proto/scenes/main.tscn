@@ -53,7 +53,7 @@ text = "Loading..."
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
-text = "S1-3=セーブ  L1-3=ロード  |  メニューでスロット選択  |  基地=生産"
+text = "S1-3=セーブ  L1-3=ロード  |  都市近く=補充  |  基地=生産"
 
 [node name="EndTurnButton" type="Button" parent="UI"]
 unique_name_in_owner = true
@@ -103,13 +103,33 @@ offset_right = 860.0
 offset_bottom = 344.0
 text = "メニューへ"
 
-[node name="ProductionPanel" type="PanelContainer" parent="UI"]
+[node name="ReplenishPanel" type="PanelContainer" parent="UI"]
 unique_name_in_owner = true
 visible = false
 offset_left = 720.0
 offset_top = 204.0
 offset_right = 1010.0
-offset_bottom = 392.0
+offset_bottom = 320.0
+
+[node name="ReplenishVBox" type="VBoxContainer" parent="UI/ReplenishPanel"]
+layout_mode = 2
+
+[node name="ReplenishTitle" type="Label" parent="UI/ReplenishPanel/ReplenishVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "補充"
+
+[node name="ReplenishButtons" type="VBoxContainer" parent="UI/ReplenishPanel/ReplenishVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ProductionPanel" type="PanelContainer" parent="UI"]
+unique_name_in_owner = true
+visible = false
+offset_left = 720.0
+offset_top = 328.0
+offset_right = 1010.0
+offset_bottom = 516.0
 
 [node name="ProductionVBox" type="VBoxContainer" parent="UI/ProductionPanel"]
 layout_mode = 2

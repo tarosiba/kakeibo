@@ -10,7 +10,7 @@ const ENTRIES: Array[Dictionary] = [
 		"range": 1,
 		"atk": 3,
 		"def": 1,
-		"hp": 8,
+		"hp": 10,
 	},
 	{
 		"id": "tank",
@@ -21,7 +21,7 @@ const ENTRIES: Array[Dictionary] = [
 		"range": 1,
 		"atk": 5,
 		"def": 2,
-		"hp": 12,
+		"hp": 10,
 	},
 	{
 		"id": "artillery",
@@ -32,7 +32,7 @@ const ENTRIES: Array[Dictionary] = [
 		"range": 2,
 		"atk": 4,
 		"def": 0,
-		"hp": 6,
+		"hp": 10,
 	},
 ]
 

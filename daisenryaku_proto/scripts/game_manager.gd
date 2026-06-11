@@ -25,6 +25,9 @@ const ENEMY_ACTION_DELAY: float = 0.45
 @onready var funds_label: Label = %FundsLabel
 @onready var units_status_label: Label = %UnitsStatusLabel
 @onready var unit_roster: VBoxContainer = %UnitRosterVBox
+@onready var replenish_panel: PanelContainer = %ReplenishPanel
+@onready var replenish_title: Label = %ReplenishTitle
+@onready var replenish_buttons: VBoxContainer = %ReplenishButtons
 @onready var production_panel: PanelContainer = %ProductionPanel
 @onready var production_title: Label = %ProductionTitle
 @onready var production_buttons: VBoxContainer = %ProductionButtons
@@ -54,6 +57,7 @@ func _ready() -> void:
 	menu_button.pressed.connect(_on_menu_pressed)
 	_build_save_load_buttons()
 	production_panel.visible = false
+	replenish_panel.visible = false
 
 	_log_unit_chip_status()
 
@@ -264,6 +268,18 @@ func _can_open_production(tile: HexTile) -> bool:
 
 
 func _select_unit(unit: Unit, tile: HexTile) -> void:
+	if unit.is_replenishing():
+		_clear_selection()
+		selected_unit = unit
+		state = State.UNIT_SELECTED
+		hex_map.show_selected(tile)
+		_refresh_replenish_panel()
+		_refresh_unit_roster()
+		_update_status(
+			"%s 補充中。残り %d ターンで戦力10。" % [unit.unit_name, unit.replenish_turns_left],
+		)
+		return
+
 	if unit.has_acted:
 		_update_status("%s は行動済みです。別のユニットを選んでください。" % unit.unit_name)
 		return
@@ -277,6 +293,7 @@ func _select_unit(unit: Unit, tile: HexTile) -> void:
 	hex_map.show_attackable(attack_targets)
 	hex_map.show_attack_predictions(unit, attack_targets)
 	hex_map.show_selected(tile)
+	_refresh_replenish_panel()
 	_refresh_unit_roster()
 	_update_funds_label()
 	_update_status(_format_selection_message(unit))
@@ -356,6 +373,34 @@ func _execute_attack(tile: HexTile) -> void:
 		return
 
 
+func _execute_replenish() -> void:
+	if selected_unit == null:
+		return
+
+	var unit: Unit = selected_unit
+	var result: Dictionary = hex_map.start_replenish(unit)
+	if not result.success:
+		_update_status(result.get("reason", "補充できません。"))
+		return
+
+	var turns_left: int = unit.replenish_turns_left
+	var unit_name: String = unit.unit_name
+	_clear_selection()
+	_refresh_unit_roster()
+	_update_status("%s が補充を開始。%d ターン後に戦力10。" % [unit_name, turns_left])
+
+
+func _execute_cancel_replenish() -> void:
+	if selected_unit == null or not selected_unit.is_replenishing():
+		return
+
+	var unit_name: String = selected_unit.unit_name
+	selected_unit.cancel_replenish()
+	_clear_selection()
+	_refresh_unit_roster()
+	_update_status("%s の補充を中止しました。" % unit_name)
+
+
 func _execute_production(catalog_id: String) -> void:
 	if selected_base_tile == null:
 		return
@@ -391,6 +436,9 @@ func _on_end_turn_pressed() -> void:
 
 func _start_player_turn() -> void:
 	turn_phase = TurnPhase.PLAYER
+	var replenish_messages: Array[String] = hex_map.process_replenishment_turn_start(
+		Unit.Faction.PLAYER,
+	)
 	hex_map.reset_all_unit_turns()
 	hex_map.reset_base_production(Unit.Faction.PLAYER)
 	var income: int = hex_map.collect_income(Unit.Faction.PLAYER)
@@ -401,9 +449,12 @@ func _start_player_turn() -> void:
 	_refresh_unit_roster()
 	_update_funds_label()
 	var map_label: String = MapRegistry.get_display_name(GameSession.map_id)
-	_update_status(
-		"[%s] プレイヤーターン。+%d 資金。ユニット操作か自軍基地クリックで生産。" % [map_label, income],
+	var status_text: String = (
+		"[%s] プレイヤーターン。+%d 資金。都市近くで補充、基地で生産。" % [map_label, income]
 	)
+	if not replenish_messages.is_empty():
+		status_text = "%s  %s" % [replenish_messages[0], status_text]
+	_update_status(status_text)
 	_check_victory()
 
 
@@ -435,15 +486,32 @@ func _run_enemy_turn() -> void:
 	_update_status("敵ターン。敵は +%d 資金を獲得。" % enemy_income)
 	await get_tree().create_timer(0.35).timeout
 
+	var enemy_replenish_messages: Array[String] = hex_map.process_replenishment_turn_start(
+		Unit.Faction.ENEMY,
+	)
+	if not enemy_replenish_messages.is_empty():
+		_update_status(enemy_replenish_messages[0])
+		await get_tree().create_timer(0.35).timeout
+
 	_enemy_produce_units()
 
 	var enemies: Array[Unit] = hex_map.get_units_by_faction(Unit.Faction.ENEMY)
 	for enemy: Unit in enemies:
-		if not enemy.is_alive():
+		if not enemy.is_alive() or enemy.has_acted or enemy.is_replenishing():
 			continue
 
 		var action: Dictionary = EnemyAI.decide_action(hex_map, enemy)
 		match action.get("type", "wait"):
+			"replenish":
+				var replenish_result: Dictionary = hex_map.start_replenish(enemy)
+				if replenish_result.success:
+					_update_status(
+						"%s が補充を開始 (残%dターン)" % [
+							enemy.unit_name,
+							enemy.replenish_turns_left,
+						],
+					)
+					_refresh_unit_roster()
 			"attack":
 				var target_tile: HexTile = action.target
 				var victim: Unit = target_tile.unit
@@ -474,7 +542,7 @@ func _run_enemy_turn() -> void:
 					_update_status(move_message)
 					_update_funds_label()
 
-		if is_instance_valid(enemy) and enemy.is_alive():
+		if is_instance_valid(enemy) and enemy.is_alive() and action.get("type", "wait") != "replenish":
 			enemy.mark_acted()
 		await get_tree().create_timer(ENEMY_ACTION_DELAY).timeout
 
@@ -550,6 +618,45 @@ func _on_player_defeat() -> void:
 	_update_status("敗北... 自軍と基地を失いました。")
 
 
+func _refresh_replenish_panel() -> void:
+	for child: Node in replenish_buttons.get_children():
+		child.queue_free()
+
+	if selected_unit == null or selected_unit.faction != Unit.Faction.PLAYER:
+		replenish_panel.visible = false
+		return
+
+	if selected_unit.is_replenishing():
+		replenish_panel.visible = true
+		replenish_title.text = "%s 補充中" % selected_unit.unit_name
+		var info := Label.new()
+		info.text = "戦力 %d → 10  (残%dターン)" % [
+			selected_unit.hp,
+			selected_unit.replenish_turns_left,
+		]
+		replenish_buttons.add_child(info)
+		var cancel_button := Button.new()
+		cancel_button.text = "補充中止"
+		cancel_button.pressed.connect(_execute_cancel_replenish)
+		replenish_buttons.add_child(cancel_button)
+		return
+
+	if hex_map.can_start_replenish(selected_unit):
+		replenish_panel.visible = true
+		var turns_needed: int = ReplenishRules.get_required_turns(selected_unit.hp)
+		replenish_title.text = "%s 補充" % selected_unit.unit_name
+		var info := Label.new()
+		info.text = "戦力 %d → 10  (%dターン)" % [selected_unit.hp, turns_needed]
+		replenish_buttons.add_child(info)
+		var replenish_button := Button.new()
+		replenish_button.text = "補充する"
+		replenish_button.pressed.connect(_execute_replenish)
+		replenish_buttons.add_child(replenish_button)
+		return
+
+	replenish_panel.visible = false
+
+
 func _refresh_production_panel() -> void:
 	for child: Node in production_buttons.get_children():
 		child.queue_free()
@@ -607,17 +714,19 @@ func _refresh_unit_roster() -> void:
 
 	for unit: Unit in player_units:
 		var button := Button.new()
-		var status_mark: String = " [待機]" if unit.has_acted else ""
 		var selected_mark: String = " <<" if unit == selected_unit else ""
-		button.text = "%s HP %d/%d%s%s" % [
+		button.text = "%s 戦力%d%s%s" % [
 			unit.unit_name,
 			unit.hp,
-			unit.max_hp,
-			status_mark,
+			unit.get_status_suffix(),
 			selected_mark,
 		]
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		button.disabled = unit.has_acted or game_result != GameResult.NONE or turn_phase != TurnPhase.PLAYER
+		button.disabled = (
+			(not unit.can_take_action() and not unit.is_replenishing())
+			or game_result != GameResult.NONE
+			or turn_phase != TurnPhase.PLAYER
+		)
 		button.pressed.connect(_select_unit_from_roster.bind(unit))
 		unit_roster.add_child(button)
 
@@ -643,17 +752,21 @@ func _format_base_message(tile: HexTile) -> String:
 
 
 func _format_selection_message(unit: Unit) -> String:
+	var replenish_hint: String = ""
+	if hex_map.can_start_replenish(unit):
+		var turns_needed: int = ReplenishRules.get_required_turns(unit.hp)
+		replenish_hint = "  補充可(%dターン)" % turns_needed
 	return (
-		"[%s] (%d, %d)  HP %d/%d  移%d/攻%d/射%d  赤数字=与/被ダメ"
+		"[%s] (%d, %d)  戦力 %d/10  移%d/攻%d/射%d%s"
 		% [
 			unit.unit_name,
 			unit.coord.x,
 			unit.coord.y,
 			unit.hp,
-			unit.max_hp,
 			unit.move_range,
 			unit.attack_power,
 			unit.attack_range,
+			replenish_hint,
 		]
 	)
 
@@ -770,6 +883,7 @@ func _clear_selection() -> void:
 	attack_targets.clear()
 	hex_map.clear_highlights()
 	production_panel.visible = false
+	replenish_panel.visible = false
 	_refresh_unit_roster()
 
 
