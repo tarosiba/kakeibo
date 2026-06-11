@@ -90,7 +90,6 @@ func _spawn_unit_from_config(config: Dictionary, faction: Unit.Faction) -> Unit:
 	var unit: Unit = spawn_unit(
 		config.coord,
 		faction,
-		config.color,
 		config.move,
 		config.range,
 		config.atk,
@@ -113,7 +112,6 @@ func _spawn_unit_from_config(config: Dictionary, faction: Unit.Faction) -> Unit:
 func spawn_unit(
 	coord: Vector2i,
 	faction: Unit.Faction,
-	color: Color,
 	move_range: int,
 	attack_range: int = 1,
 	attack_power: int = 3,
@@ -135,7 +133,7 @@ func spawn_unit(
 	unit.unit_name = unit_name
 	unit.unit_type = unit_type
 	unit.faction = faction
-	unit.faction_color = color
+	unit.faction_color = Unit.get_faction_color(faction)
 	unit.move_range = move_range
 	unit.attack_range = attack_range
 	unit.attack_power = attack_power
@@ -365,14 +363,9 @@ func produce_unit(tile: HexTile, faction: Unit.Faction, catalog_id: String) -> D
 	if not spend_funds(faction, entry.cost):
 		return {"success": false, "reason": "資金が足りません"}
 
-	var color: Color = entry.color
-	if faction == Unit.Faction.ENEMY:
-		color = color.darkened(0.25)
-
 	var unit: Unit = spawn_unit(
 		tile.coord,
 		faction,
-		color,
 		entry.move,
 		entry.range,
 		entry.atk,

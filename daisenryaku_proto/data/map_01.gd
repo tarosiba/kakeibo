@@ -48,7 +48,7 @@ const PLAYER_UNITS: Array[Dictionary] = [
 		"atk": 5,
 		"def": 2,
 		"hp": 12,
-		"color": Color(0.85, 0.20, 0.20),
+		"color": Unit.get_faction_color(Unit.Faction.PLAYER),
 	},
 	{
 		"coord": Vector2i(1, 6),
@@ -59,7 +59,7 @@ const PLAYER_UNITS: Array[Dictionary] = [
 		"atk": 3,
 		"def": 1,
 		"hp": 8,
-		"color": Color(0.95, 0.45, 0.15),
+		"color": Unit.get_faction_color(Unit.Faction.PLAYER),
 	},
 	{
 		"coord": Vector2i(0, 4),
@@ -70,7 +70,7 @@ const PLAYER_UNITS: Array[Dictionary] = [
 		"atk": 4,
 		"def": 0,
 		"hp": 6,
-		"color": Color(0.75, 0.25, 0.55),
+		"color": Unit.get_faction_color(Unit.Faction.PLAYER),
 	},
 ]
 
@@ -84,7 +84,7 @@ const ENEMY_UNITS: Array[Dictionary] = [
 		"atk": 4,
 		"def": 1,
 		"hp": 10,
-		"color": Color(0.25, 0.45, 0.90),
+		"color": Unit.get_faction_color(Unit.Faction.ENEMY),
 	},
 	{
 		"coord": Vector2i(8, 6),
@@ -95,7 +95,7 @@ const ENEMY_UNITS: Array[Dictionary] = [
 		"atk": 3,
 		"def": 1,
 		"hp": 8,
-		"color": Color(0.35, 0.60, 0.95),
+		"color": Unit.get_faction_color(Unit.Faction.ENEMY),
 	},
 	{
 		"coord": Vector2i(6, 2),
@@ -106,6 +106,6 @@ const ENEMY_UNITS: Array[Dictionary] = [
 		"atk": 3,
 		"def": 0,
 		"hp": 6,
-		"color": Color(0.20, 0.35, 0.75),
+		"color": Unit.get_faction_color(Unit.Faction.ENEMY),
 	},
 ]

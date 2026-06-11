@@ -158,10 +158,6 @@ func _place_unit(coord: Vector2i, faction: Unit.Faction, catalog_id: String) -> 
 	map_data.remove_unit_at(coord)
 	map_data.remove_base_at(coord)
 
-	var color: Color = entry.color
-	if faction == Unit.Faction.ENEMY:
-		color = color.darkened(0.25)
-
 	var unit_config: Dictionary = {
 		"coord": coord,
 		"name": ("敵" if faction == Unit.Faction.ENEMY else "") + entry.name,
@@ -171,7 +167,7 @@ func _place_unit(coord: Vector2i, faction: Unit.Faction, catalog_id: String) -> 
 		"atk": entry.atk,
 		"def": entry.def,
 		"hp": entry.hp,
-		"color": color,
+		"color": Unit.get_faction_color(faction),
 		"catalog_id": catalog_id,
 	}
 

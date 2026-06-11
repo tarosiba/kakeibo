@@ -208,7 +208,7 @@ static func _decode_units(raw_units: Array) -> Array:
 			"hp": item.get("hp", entry.get("hp", 8)),
 			"max_hp": item.get("max_hp", item.get("hp", entry.get("hp", 8))),
 			"has_acted": item.get("has_acted", false),
-			"color": _decode_color(item.get("color", entry.get("color", Color.WHITE))),
+			"color": _decode_color(item.get("color", Color.WHITE)),
 			"catalog_id": catalog_id,
 		})
 	return result

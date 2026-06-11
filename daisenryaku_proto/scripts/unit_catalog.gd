@@ -11,7 +11,6 @@ const ENTRIES: Array[Dictionary] = [
 		"atk": 3,
 		"def": 1,
 		"hp": 8,
-		"color": Color(0.95, 0.45, 0.15),
 	},
 	{
 		"id": "tank",
@@ -23,7 +22,6 @@ const ENTRIES: Array[Dictionary] = [
 		"atk": 5,
 		"def": 2,
 		"hp": 12,
-		"color": Color(0.85, 0.20, 0.20),
 	},
 	{
 		"id": "artillery",
@@ -35,7 +33,6 @@ const ENTRIES: Array[Dictionary] = [
 		"atk": 4,
 		"def": 0,
 		"hp": 6,
-		"color": Color(0.75, 0.25, 0.55),
 	},
 ]
 
