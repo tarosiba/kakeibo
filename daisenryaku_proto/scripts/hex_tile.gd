@@ -51,7 +51,7 @@ func _update_base_display() -> void:
 		return
 
 	base_sprite.visible = true
-	base_sprite.texture = TileAtlas.get_base_texture(base_info.owner)
+	base_sprite.texture = TileAtlas.get_base_texture(base_info.owner, base_info.base_type)
 
 
 func _apply_terrain_visual() -> void:

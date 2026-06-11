@@ -10,6 +10,8 @@ enum UnitType {
 	TANK,
 	INFANTRY,
 	ARTILLERY,
+	ATTACK_HELI,
+	AA_GUN,
 }
 
 const FACTION_COLORS: Dictionary = {
@@ -35,10 +37,29 @@ var coord: Vector2i = Vector2i.ZERO
 var hp: int = ReplenishRules.MAX_STRENGTH
 var has_acted: bool = false
 var replenish_turns_left: int = 0
+var fuel_max: int = 0
+var fuel: int = 0
+var uses_fuel: bool = false
 
 
 static func get_faction_color(faction: Faction) -> Color:
 	return FACTION_COLORS.get(faction, Color.WHITE)
+
+
+func is_air_unit() -> bool:
+	return UnitMobility.is_air_unit(unit_type)
+
+
+func is_aa_gun() -> bool:
+	return unit_type == UnitType.AA_GUN
+
+
+func can_attack_unit_type(target_type: UnitType) -> bool:
+	if is_aa_gun():
+		return target_type == UnitType.ATTACK_HELI
+	if is_air_unit():
+		return not UnitMobility.is_air_unit(target_type)
+	return true
 
 
 func _ready() -> void:
@@ -90,7 +111,7 @@ func tick_replenish(hex_map: HexMap) -> bool:
 	if replenish_turns_left <= 0:
 		return false
 
-	if not ReplenishRules.can_replenish_at_coord(hex_map, coord, faction):
+	if not ReplenishRules.can_replenish_at_coord(hex_map, coord, self):
 		cancel_replenish()
 		return true
 

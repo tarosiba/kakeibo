@@ -16,12 +16,17 @@ static func get_terrain_texture(terrain: Terrain.Type) -> Texture2D:
 	return texture
 
 
-static func get_base_texture(owner: BaseInfo.Owner) -> Texture2D:
-	if _base_cache.has(owner):
-		return _base_cache[owner]
+static func get_base_texture(owner: BaseInfo.Owner, base_type: BaseInfo.BaseType = BaseInfo.BaseType.CITY) -> Texture2D:
+	var key: String = "%d_%d" % [owner, base_type]
+	if _base_cache.has(key):
+		return _base_cache[key]
 
-	var texture: Texture2D = _build_base_texture(owner)
-	_base_cache[owner] = texture
+	var texture: Texture2D
+	if base_type == BaseInfo.BaseType.AIRFIELD:
+		texture = _build_airfield_texture(owner)
+	else:
+		texture = _build_city_texture(owner)
+	_base_cache[key] = texture
 	return texture
 
 
@@ -61,7 +66,7 @@ static func _build_terrain_texture(terrain: Terrain.Type) -> Texture2D:
 	return ImageTexture.create_from_image(image)
 
 
-static func _build_base_texture(owner: BaseInfo.Owner) -> Texture2D:
+static func _build_city_texture(owner: BaseInfo.Owner) -> Texture2D:
 	var image := Image.create(20, 18, false, Image.FORMAT_RGBA8)
 	image.fill(Color(0, 0, 0, 0))
 
@@ -88,6 +93,63 @@ static func _build_base_texture(owner: BaseInfo.Owner) -> Texture2D:
 				image.set_pixel(x, y, Color(0.15, 0.10, 0.08))
 
 	return ImageTexture.create_from_image(image)
+
+
+static func _build_airfield_texture(owner: BaseInfo.Owner) -> Texture2D:
+	var image := Image.create(24, 20, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0, 0, 0, 0))
+
+	var concrete: Color = Color(0.42, 0.44, 0.48)
+	var stripe: Color = Color(0.95, 0.82, 0.18)
+	var tower: Color
+	var accent: Color
+	match owner:
+		BaseInfo.Owner.PLAYER:
+			tower = Color(0.82, 0.28, 0.24)
+			accent = Color(0.95, 0.35, 0.30)
+		BaseInfo.Owner.ENEMY:
+			tower = Color(0.28, 0.48, 0.82)
+			accent = Color(0.35, 0.55, 0.95)
+		_:
+			tower = Color(0.62, 0.64, 0.68)
+			accent = Color(0.78, 0.80, 0.84)
+
+	for y in 20:
+		for x in 24:
+			if y >= 11 and y < 18 and x >= 2 and x < 22:
+				image.set_pixel(x, y, concrete)
+			elif y >= 4 and y < 12 and x >= 16 and x < 20:
+				image.set_pixel(x, y, tower)
+			elif y >= 2 and y < 5 and x >= 17 and x < 19:
+				image.set_pixel(x, y, accent)
+
+	for x in range(4, 20, 3):
+		for y in range(13, 17):
+			image.set_pixel(x, y, stripe)
+
+	for y in range(14, 16):
+		for x in range(8, 14):
+			image.set_pixel(x, y, Color(0.95, 0.95, 0.98))
+
+	_draw_circle_mark(image, Vector2i(11, 15), 2, stripe)
+	_set_px(image, 10, 14, stripe)
+	_set_px(image, 12, 14, stripe)
+	_set_px(image, 11, 13, stripe)
+	_set_px(image, 11, 16, stripe)
+
+	return ImageTexture.create_from_image(image)
+
+
+static func _draw_circle_mark(image: Image, center: Vector2i, radius: int, color: Color) -> void:
+	for y in range(center.y - radius, center.y + radius + 1):
+		for x in range(center.x - radius, center.x + radius + 1):
+			if Vector2i(x, y).distance_to(center) <= float(radius) + 0.4:
+				_set_px(image, x, y, color)
+
+
+static func _set_px(image: Image, x: int, y: int, color: Color) -> void:
+	if x >= 0 and y >= 0 and x < image.get_width() and y < image.get_height():
+		image.set_pixel(x, y, color)
 
 
 static func _terrain_palette(terrain: Terrain.Type) -> Dictionary:

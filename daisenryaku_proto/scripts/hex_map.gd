@@ -87,6 +87,7 @@ func _spawn_bases_from_data(base_entries: Array) -> void:
 		var info := BaseInfo.new()
 		info.base_name = config.name
 		info.owner = config.owner
+		info.base_type = config.get("base_type", BaseInfo.BaseType.CITY)
 		info.income = config.income
 		info.produced_this_turn = config.get("produced_this_turn", false)
 		tiles[coord].set_base(info)
@@ -116,6 +117,7 @@ func _spawn_unit_from_config(config: Dictionary, faction: Unit.Faction) -> Unit:
 	unit.max_hp = ReplenishRules.MAX_STRENGTH
 	unit.hp = clampi(config.get("hp", max_hp), 0, unit.max_hp)
 	unit.replenish_turns_left = maxi(0, config.get("replenish_turns_left", 0))
+	_apply_catalog_traits(unit, config.get("catalog_id", ""))
 	if config.get("has_acted", false) or unit.is_replenishing():
 		unit.mark_acted()
 	else:
@@ -191,6 +193,7 @@ func capture_runtime_state() -> Dictionary:
 			"coord": tile.coord,
 			"name": tile.base_info.base_name,
 			"owner": tile.base_info.owner,
+			"base_type": tile.base_info.base_type,
 			"income": tile.base_info.income,
 			"produced_this_turn": tile.base_info.produced_this_turn,
 		})
@@ -238,6 +241,10 @@ func _encode_runtime_unit(unit: Unit) -> Dictionary:
 			catalog_id = "tank"
 		Unit.UnitType.ARTILLERY:
 			catalog_id = "artillery"
+		Unit.UnitType.ATTACK_HELI:
+			catalog_id = "attack_heli"
+		Unit.UnitType.AA_GUN:
+			catalog_id = "aa_gun"
 
 	return {
 		"coord": unit.coord,
@@ -300,9 +307,11 @@ func can_start_replenish(unit: Unit) -> bool:
 func start_replenish(unit: Unit) -> Dictionary:
 	if not can_start_replenish(unit):
 		var tile: HexTile = get_tile(unit.coord)
+		if unit.is_air_unit():
+			return {"success": false, "reason": "自軍飛行場の近くでのみ補充できます。"}
 		if tile != null and tile.base_info != null and not tile.base_info.is_owned_by(unit.faction):
-			return {"success": false, "reason": "都市を占領してから補充できます。"}
-		return {"success": false, "reason": "自軍占領都市の近くでのみ補充できます。"}
+			return {"success": false, "reason": "拠点を占領してから補充できます。"}
+		return {"success": false, "reason": "自軍都市の近くでのみ補充できます。"}
 
 	var turns_needed: int = ReplenishRules.get_required_turns(unit.hp)
 	unit.start_replenish()
@@ -416,6 +425,11 @@ func produce_unit(tile: HexTile, faction: Unit.Faction, catalog_id: String) -> D
 	if entry.is_empty():
 		return {"success": false, "reason": "不明なユニット"}
 
+	if not UnitCatalog.can_produce_at_base(catalog_id, tile.base_info.base_type):
+		if tile.base_info.is_airfield():
+			return {"success": false, "reason": "飛行場では攻撃ヘリのみ生産できます。"}
+		return {"success": false, "reason": "都市では攻撃ヘリは生産できません。"}
+
 	if not spend_funds(faction, entry.cost):
 		return {"success": false, "reason": "資金が足りません"}
 
@@ -430,6 +444,8 @@ func produce_unit(tile: HexTile, faction: Unit.Faction, catalog_id: String) -> D
 		entry.name,
 		entry.type,
 	)
+	if unit != null:
+		_apply_catalog_traits(unit, catalog_id)
 	if unit == null:
 		match faction:
 			Unit.Faction.PLAYER:
@@ -447,9 +463,10 @@ func produce_unit(tile: HexTile, faction: Unit.Faction, catalog_id: String) -> D
 	}
 
 
-func get_reachable(from: Vector2i, move_points: int) -> Dictionary:
+func get_reachable(from: Vector2i, move_points: int, unit: Unit = null) -> Dictionary:
 	var result: Dictionary = {}
 	var frontier: Array = [[from, move_points]]
+	var unit_type: Unit.UnitType = unit.unit_type if unit != null else Unit.UnitType.INFANTRY
 
 	while not frontier.is_empty():
 		var current: Array = frontier.pop_front()
@@ -462,7 +479,7 @@ func get_reachable(from: Vector2i, move_points: int) -> Dictionary:
 				continue
 
 			var tile: HexTile = tiles[next_coord]
-			var step_cost: int = tile.get_move_cost()
+			var step_cost: int = UnitMobility.get_move_cost(tile, unit_type)
 			if step_cost > cost_left:
 				continue
 
@@ -489,6 +506,8 @@ func get_attack_targets(attacker: Unit) -> Array[HexTile]:
 		var tile: HexTile = tiles[coord]
 		if tile.unit == null or tile.unit.faction == attacker.faction:
 			continue
+		if not CombatResolver.can_attack(attacker, tile.unit):
+			continue
 
 		targets.append(tile)
 
@@ -503,6 +522,8 @@ func attack_unit(
 	var defender: Unit = target_tile.unit
 	if defender == null or defender.faction == attacker.faction:
 		return {"success": false}
+	if not CombatResolver.can_attack(attacker, defender):
+		return {"success": false, "reason": "このユニットは攻撃できません。"}
 
 	if HexCoord.distance(attacker.coord, target_tile.coord) > attacker.attack_range:
 		return {"success": false}
@@ -653,3 +674,28 @@ func _on_tile_hovered(tile: HexTile) -> void:
 
 func _on_tile_unhovered(tile: HexTile) -> void:
 	tile_unhovered.emit(tile)
+
+
+func _apply_catalog_traits(unit: Unit, catalog_id: String) -> void:
+	var resolved_id: String = catalog_id
+	if resolved_id == "":
+		match unit.unit_type:
+			Unit.UnitType.TANK:
+				resolved_id = "tank"
+			Unit.UnitType.ARTILLERY:
+				resolved_id = "artillery"
+			Unit.UnitType.ATTACK_HELI:
+				resolved_id = "attack_heli"
+			Unit.UnitType.AA_GUN:
+				resolved_id = "aa_gun"
+			_:
+				resolved_id = "infantry"
+
+	var entry: Dictionary = UnitCatalog.get_entry(resolved_id)
+	if entry.is_empty():
+		return
+
+	if entry.get("uses_fuel", false):
+		unit.uses_fuel = true
+		unit.fuel_max = entry.get("fuel_max", 99)
+		unit.fuel = unit.fuel_max

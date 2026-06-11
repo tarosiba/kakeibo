@@ -37,8 +37,22 @@ static func from_map02() -> MapData:
 	)
 
 
+static func from_map03() -> MapData:
+	return _from_map_constants(
+		"map_03",
+		Map03.DATA,
+		Map03.BASES,
+		Map03.PLAYER_UNITS,
+		Map03.ENEMY_UNITS,
+		Map03.INITIAL_PLAYER_FUNDS,
+		Map03.INITIAL_ENEMY_FUNDS,
+	)
+
+
 static func from_id(map_id: String) -> MapData:
 	match map_id:
+		"map_03":
+			return from_map03()
 		"map_02":
 			return from_map02()
 		"map_01":
@@ -227,6 +241,7 @@ static func _decode_bases(raw_bases: Array) -> Array:
 			"coord": Vector2i(coord_value[0], coord_value[1]),
 			"name": item.get("name", "基地"),
 			"owner": _decode_owner(item.get("owner", "NEUTRAL")),
+			"base_type": _decode_base_type(item.get("base_type", "CITY")),
 			"income": item.get("income", 250),
 			"produced_this_turn": item.get("produced_this_turn", false),
 		})
@@ -268,6 +283,9 @@ func _encode_bases() -> Array:
 		}
 		if base.get("produced_this_turn", false):
 			entry["produced_this_turn"] = true
+		var base_type: BaseInfo.BaseType = base.get("base_type", BaseInfo.BaseType.CITY)
+		if base_type != BaseInfo.BaseType.CITY:
+			entry["base_type"] = _encode_base_type(base_type)
 		result.append(entry)
 	return result
 
@@ -326,6 +344,10 @@ static func _decode_unit_type(value: Variant) -> Unit.UnitType:
 			return Unit.UnitType.TANK
 		"ARTILLERY":
 			return Unit.UnitType.ARTILLERY
+		"ATTACK_HELI":
+			return Unit.UnitType.ATTACK_HELI
+		"AA_GUN":
+			return Unit.UnitType.AA_GUN
 		_:
 			return Unit.UnitType.INFANTRY
 
@@ -336,8 +358,30 @@ static func _encode_unit_type(unit_type: Unit.UnitType) -> String:
 			return "TANK"
 		Unit.UnitType.ARTILLERY:
 			return "ARTILLERY"
+		Unit.UnitType.ATTACK_HELI:
+			return "ATTACK_HELI"
+		Unit.UnitType.AA_GUN:
+			return "AA_GUN"
 		_:
 			return "INFANTRY"
+
+
+static func _decode_base_type(value: Variant) -> BaseInfo.BaseType:
+	if typeof(value) == TYPE_INT:
+		return value as BaseInfo.BaseType
+	match str(value):
+		"AIRFIELD":
+			return BaseInfo.BaseType.AIRFIELD
+		_:
+			return BaseInfo.BaseType.CITY
+
+
+static func _encode_base_type(base_type: BaseInfo.BaseType) -> String:
+	match base_type:
+		BaseInfo.BaseType.AIRFIELD:
+			return "AIRFIELD"
+		_:
+			return "CITY"
 
 
 static func _decode_color(value: Variant) -> Color:

@@ -7,8 +7,14 @@ enum Owner {
 	ENEMY,
 }
 
+enum BaseType {
+	CITY,
+	AIRFIELD,
+}
+
 var base_name: String = "基地"
 var owner: Owner = Owner.NEUTRAL
+var base_type: BaseType = BaseType.CITY
 var income: int = 200
 var produced_this_turn: bool = false
 
@@ -31,6 +37,14 @@ func set_owner_from_faction(faction: Unit.Faction) -> void:
 			owner = Owner.ENEMY
 		_:
 			owner = Owner.NEUTRAL
+
+
+func is_airfield() -> bool:
+	return base_type == BaseType.AIRFIELD
+
+
+func is_city() -> bool:
+	return base_type == BaseType.CITY
 
 
 func get_owner_color() -> Color:

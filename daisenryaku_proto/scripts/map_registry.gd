@@ -14,6 +14,12 @@ const MAPS: Array[Dictionary] = [
 		"description": "拠点と部隊が増えた広域マップ",
 	},
 	{
+		"id": "map_03",
+		"name": "作戦地域 γ",
+		"size": "20×16",
+		"description": "飛行場・攻撃ヘリ・対空砲ありの広域マップ",
+	},
+	{
 		"id": "custom",
 		"name": "カスタムマップ",
 		"size": "可変",
