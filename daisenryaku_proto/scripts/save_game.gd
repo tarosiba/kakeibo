@@ -52,6 +52,8 @@ static func get_summary(slot: int) -> Dictionary:
 		"slot": slot,
 		"turn_number": data.get("turn_number", 1),
 		"map_name": data.get("map", {}).get("map_name", "unknown"),
+		"map_id": data.get("map_id", "map_01"),
+		"difficulty": data.get("difficulty", GameDifficulty.Level.NORMAL),
 		"saved_at": data.get("saved_at", ""),
 		"game_result": data.get("game_result", 0),
 	}
@@ -63,10 +65,23 @@ static func get_slot_label(slot: int) -> String:
 
 	var summary: Dictionary = get_summary(slot)
 	var turn_number: int = summary.get("turn_number", 1)
+	var map_label: String = MapRegistry.get_display_name(summary.get("map_id", "map_01"))
+	var difficulty_label: String = GameDifficulty.get_label(summary.get("difficulty", GameDifficulty.Level.NORMAL))
 	var saved_at: String = summary.get("saved_at", "")
 	if saved_at != "":
-		return "スロット%d: ターン%d (%s)" % [slot, turn_number, saved_at]
-	return "スロット%d: ターン%d" % [slot, turn_number]
+		return "スロット%d: %s / %s ターン%d (%s)" % [
+			slot,
+			map_label,
+			difficulty_label,
+			turn_number,
+			saved_at,
+		]
+	return "スロット%d: %s / %s ターン%d" % [
+		slot,
+		map_label,
+		difficulty_label,
+		turn_number,
+	]
 
 
 static func save_snapshot(slot: int, snapshot: Dictionary) -> bool:
@@ -127,12 +142,16 @@ static func build_snapshot(
 	game_result: int,
 	map_source: int,
 	slot: int = 1,
+	map_id: String = "map_01",
+	difficulty: int = GameDifficulty.Level.NORMAL,
 ) -> Dictionary:
 	return {
 		"version": VERSION,
 		"slot": slot,
 		"saved_at": Time.get_datetime_string_from_system(),
 		"map_source": map_source,
+		"map_id": map_id,
+		"difficulty": difficulty,
 		"turn_number": turn_number,
 		"turn_phase": turn_phase,
 		"game_result": game_result,

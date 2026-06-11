@@ -132,6 +132,8 @@ func _on_save_slot_pressed(slot: int) -> void:
 		game_result,
 		GameSession.map_source,
 		slot,
+		GameSession.map_id,
+		GameSession.difficulty,
 	)
 	if SaveGame.save_snapshot(slot, snapshot):
 		_refresh_save_load_buttons()
@@ -168,6 +170,9 @@ func _can_save() -> bool:
 
 
 func _apply_save_data(save_data: Dictionary) -> void:
+	GameSession.map_source = save_data.get("map_source", GameSession.MapSource.DEFAULT)
+	GameSession.map_id = save_data.get("map_id", "map_01")
+	GameSession.difficulty = save_data.get("difficulty", GameDifficulty.Level.NORMAL)
 	hex_map.restore_runtime_state(save_data.get("map", {}))
 	turn_number = save_data.get("turn_number", 1)
 	turn_phase = save_data.get("turn_phase", TurnPhase.PLAYER)
@@ -395,8 +400,9 @@ func _start_player_turn() -> void:
 	_update_turn_label()
 	_refresh_unit_roster()
 	_update_funds_label()
+	var map_label: String = MapRegistry.get_display_name(GameSession.map_id)
 	_update_status(
-		"プレイヤーターン。+%d 資金。ユニット操作か自軍基地クリックで生産。" % income,
+		"[%s] プレイヤーターン。+%d 資金。ユニット操作か自軍基地クリックで生産。" % [map_label, income],
 	)
 	_check_victory()
 
@@ -776,11 +782,12 @@ func _update_turn_label() -> void:
 			turn_label.text = "敗北"
 			return
 
+	var difficulty_tag: String = GameDifficulty.get_label(GameSession.difficulty)
 	match turn_phase:
 		TurnPhase.PLAYER:
-			turn_label.text = "ターン %d - プレイヤー" % turn_number
+			turn_label.text = "ターン %d - プレイヤー [%s]" % [turn_number, difficulty_tag]
 		TurnPhase.ENEMY:
-			turn_label.text = "ターン %d - 敵" % turn_number
+			turn_label.text = "ターン %d - 敵 [%s]" % [turn_number, difficulty_tag]
 
 
 func _format_attack_message(result: Dictionary, defender: Unit) -> String:

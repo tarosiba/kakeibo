@@ -18,10 +18,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -190.0
-offset_right = 200.0
-offset_bottom = 190.0
+offset_left = -240.0
+offset_top = -260.0
+offset_right = 240.0
+offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -43,6 +43,51 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 
+[node name="NewGameTitle" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+text = "新規ゲーム"
+
+[node name="MapRow" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="MapLabel" type="Label" parent="Panel/VBox/MapRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+text = "マップ"
+
+[node name="MapOption" type="OptionButton" parent="Panel/VBox/MapRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DifficultyRow" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="DifficultyLabel" type="Label" parent="Panel/VBox/DifficultyRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+text = "難易度"
+
+[node name="DifficultyOption" type="OptionButton" parent="Panel/VBox/DifficultyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DifficultyDescription" type="Label" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "標準バランス"
+autowrap_mode = 2
+
+[node name="StartGameButton" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "ゲーム開始"
+
+[node name="NewGameSpacer" type="Control" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
 [node name="SlotTitle" type="Label" parent="Panel/VBox"]
 layout_mode = 2
 text = "続きから (セーブスロット)"
@@ -55,14 +100,6 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 
-[node name="PlayDefaultButton" type="Button" parent="Panel/VBox"]
-layout_mode = 2
-text = "デフォルトマップでプレイ"
-
-[node name="PlayCustomButton" type="Button" parent="Panel/VBox"]
-layout_mode = 2
-text = "カスタムマップでプレイ"
-
 [node name="MapEditorButton" type="Button" parent="Panel/VBox"]
 layout_mode = 2
 text = "マップエディタ"
@@ -71,7 +108,7 @@ text = "マップエディタ"
 layout_mode = 2
 text = "終了"
 
-[connection signal="pressed" from="Panel/VBox/PlayDefaultButton" to="." method="_on_play_default_pressed"]
-[connection signal="pressed" from="Panel/VBox/PlayCustomButton" to="." method="_on_play_custom_pressed"]
+[connection signal="item_selected" from="Panel/VBox/DifficultyRow/DifficultyOption" to="." method="_on_difficulty_option_item_selected"]
+[connection signal="pressed" from="Panel/VBox/StartGameButton" to="." method="_on_start_game_pressed"]
 [connection signal="pressed" from="Panel/VBox/MapEditorButton" to="." method="_on_map_editor_pressed"]
 [connection signal="pressed" from="Panel/VBox/QuitButton" to="." method="_on_quit_pressed"]

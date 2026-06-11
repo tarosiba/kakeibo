@@ -26,12 +26,24 @@ func _ready() -> void:
 
 func setup_map(map_data: MapData) -> void:
 	_clear_map()
+	_adjust_hex_size_for_map(map_data)
 	player_funds = map_data.player_funds
 	enemy_funds = map_data.enemy_funds
 	generate_map(map_data.terrain)
 	_spawn_bases_from_data(map_data.bases)
 	_spawn_units_from_data(map_data.player_units, Unit.Faction.PLAYER)
 	_spawn_units_from_data(map_data.enemy_units, Unit.Faction.ENEMY)
+
+
+func _adjust_hex_size_for_map(map_data: MapData) -> void:
+	var width: int = map_data.get_width()
+	var height: int = map_data.get_height()
+	if width > 14 or height > 11:
+		hex_size = 22.0
+	elif width > 12 or height > 10:
+		hex_size = 24.0
+	else:
+		hex_size = 28.0
 
 
 func _clear_map() -> void:
