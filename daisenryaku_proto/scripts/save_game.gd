@@ -44,7 +44,7 @@ static func get_summary(slot: int) -> Dictionary:
 	if not exists(slot):
 		return {}
 
-	var data: Dictionary = load(slot)
+	var data: Dictionary = load_slot(slot)
 	if data.is_empty():
 		return {}
 
@@ -86,7 +86,7 @@ static func save_snapshot(slot: int, snapshot: Dictionary) -> bool:
 	return true
 
 
-static func load(slot: int) -> Dictionary:
+static func load_slot(slot: int) -> Dictionary:
 	if not is_valid_slot(slot):
 		return {}
 

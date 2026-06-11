@@ -115,7 +115,7 @@ func _on_load_slot_pressed(slot: int) -> void:
 		_update_status("スロット%dは空です。ロードできません。" % slot)
 		return
 
-	var save_data: Dictionary = SaveGame.load(slot)
+	var save_data: Dictionary = SaveGame.load_slot(slot)
 	if save_data.is_empty():
 		_refresh_save_load_buttons()
 		_update_status("スロット%dの読み込みに失敗しました。" % slot)

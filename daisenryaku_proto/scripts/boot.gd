@@ -22,7 +22,7 @@ func _build_slot_buttons() -> void:
 
 
 func _on_slot_pressed(slot: int) -> void:
-	var save_data: Dictionary = SaveGame.load(slot)
+	var save_data: Dictionary = SaveGame.load_slot(slot)
 	if save_data.is_empty():
 		_build_slot_buttons()
 		return
