@@ -65,19 +65,27 @@ static func _load_custom_texture(unit_type: Unit.UnitType, faction: Unit.Faction
 	var faction_name: String = FACTION_NAMES.get(faction, "player")
 	var key: String = _cache_key(unit_type, faction)
 
-	var faction_path: String = "%s%s_%s.png" % [ASSETS_DIR, type_name, faction_name]
-	if _asset_exists(faction_path):
+	var faction_path: String = _find_existing_asset("%s%s_%s" % [ASSETS_DIR, type_name, faction_name])
+	if faction_path != "":
 		_uses_faction_tint[key] = false
 		_texture_sources[key] = faction_path
 		return _load_texture_from_file(faction_path)
 
-	var generic_path: String = "%s%s.png" % [ASSETS_DIR, type_name]
-	if _asset_exists(generic_path):
+	var generic_path: String = _find_existing_asset("%s%s" % [ASSETS_DIR, type_name])
+	if generic_path != "":
 		_uses_faction_tint[key] = false
 		_texture_sources[key] = generic_path
 		return _load_texture_from_file(generic_path)
 
 	return null
+
+
+static func _find_existing_asset(base_path: String) -> String:
+	for extension: String in [".png", ".PNG", ".Png"]:
+		var path: String = base_path + extension
+		if _asset_exists(path):
+			return path
+	return ""
 
 
 static func _asset_exists(path: String) -> bool:
