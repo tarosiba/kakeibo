@@ -57,7 +57,7 @@ static func _load_custom_texture(unit_type: Unit.UnitType, faction: Unit.Faction
 
 	var generic_path: String = "%s%s.png" % [ASSETS_DIR, type_name]
 	if ResourceLoader.exists(generic_path):
-		_uses_faction_tint[key] = true
+		_uses_faction_tint[key] = false
 		return _cache_loaded_texture(key, generic_path)
 
 	return null

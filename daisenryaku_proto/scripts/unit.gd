@@ -16,6 +16,7 @@ const FACTION_COLORS: Dictionary = {
 	Faction.PLAYER: Color(0.28, 0.52, 0.92),
 	Faction.ENEMY: Color(0.88, 0.22, 0.22),
 }
+const CHIP_DISPLAY_SIZE: float = 40.0
 
 @export var unit_name: String = "ユニット"
 @export var unit_type: UnitType = UnitType.INFANTRY
@@ -65,14 +66,26 @@ func reset_turn() -> void:
 
 func _update_visual() -> void:
 	faction_color = get_faction_color(faction)
-	if chip_sprite != null:
-		chip_sprite.texture = UnitAtlas.get_texture(unit_type, faction)
-		if UnitAtlas.uses_faction_tint(unit_type, faction):
-			chip_sprite.modulate = faction_color
-		else:
-			chip_sprite.modulate = Color.WHITE
+	_update_chip_sprite()
 	modulate = Color(0.55, 0.55, 0.55) if has_acted else Color.WHITE
 	queue_redraw()
+
+
+func _update_chip_sprite() -> void:
+	if chip_sprite == null:
+		return
+
+	chip_sprite.texture = UnitAtlas.get_texture(unit_type, faction)
+	if UnitAtlas.uses_faction_tint(unit_type, faction):
+		chip_sprite.modulate = faction_color
+	else:
+		chip_sprite.modulate = Color.WHITE
+
+	var texture_size: Vector2 = chip_sprite.texture.get_size() if chip_sprite.texture != null else Vector2.ZERO
+	var max_dim: float = maxf(texture_size.x, texture_size.y)
+	if max_dim > 0.0:
+		var scale_factor: float = CHIP_DISPLAY_SIZE / max_dim
+		chip_sprite.scale = Vector2(scale_factor, scale_factor)
 
 
 func _draw() -> void:
