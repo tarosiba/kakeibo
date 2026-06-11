@@ -299,7 +299,10 @@ func can_start_replenish(unit: Unit) -> bool:
 
 func start_replenish(unit: Unit) -> Dictionary:
 	if not can_start_replenish(unit):
-		return {"success": false, "reason": "補充できません"}
+		var tile: HexTile = get_tile(unit.coord)
+		if tile != null and tile.base_info != null and not tile.base_info.is_owned_by(unit.faction):
+			return {"success": false, "reason": "都市を占領してから補充できます。"}
+		return {"success": false, "reason": "自軍占領都市の近くでのみ補充できます。"}
 
 	var turns_needed: int = ReplenishRules.get_required_turns(unit.hp)
 	unit.start_replenish()

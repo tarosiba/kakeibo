@@ -450,7 +450,7 @@ func _start_player_turn() -> void:
 	_update_funds_label()
 	var map_label: String = MapRegistry.get_display_name(GameSession.map_id)
 	var status_text: String = (
-		"[%s] プレイヤーターン。+%d 資金。都市近くで補充、基地で生産。" % [map_label, income]
+		"[%s] プレイヤーターン。+%d 資金。自軍都市近くで補充、基地で生産。" % [map_label, income]
 	)
 	if not replenish_messages.is_empty():
 		status_text = "%s  %s" % [replenish_messages[0], status_text]

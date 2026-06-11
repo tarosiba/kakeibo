@@ -90,7 +90,7 @@ func tick_replenish(hex_map: HexMap) -> bool:
 	if replenish_turns_left <= 0:
 		return false
 
-	if not ReplenishRules.is_in_supply_zone(hex_map, coord, faction):
+	if not ReplenishRules.can_replenish_at_coord(hex_map, coord, faction):
 		cancel_replenish()
 		return true
 

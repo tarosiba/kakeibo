@@ -53,7 +53,7 @@ text = "Loading..."
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
-text = "S1-3=セーブ  L1-3=ロード  |  都市近く=補充  |  基地=生産"
+text = "S1-3=セーブ  L1-3=ロード  |  自軍都市近く=補充  |  基地=生産"
 
 [node name="EndTurnButton" type="Button" parent="UI"]
 unique_name_in_owner = true
