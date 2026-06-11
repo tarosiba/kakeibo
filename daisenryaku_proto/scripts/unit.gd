@@ -16,7 +16,7 @@ const FACTION_COLORS: Dictionary = {
 	Faction.PLAYER: Color(0.28, 0.52, 0.92),
 	Faction.ENEMY: Color(0.88, 0.22, 0.22),
 }
-const CHIP_DISPLAY_SIZE: float = 52.0
+const CHIP_DISPLAY_SIZE: float = 56.0
 
 @export var unit_name: String = "ユニット"
 @export var unit_type: UnitType = UnitType.INFANTRY

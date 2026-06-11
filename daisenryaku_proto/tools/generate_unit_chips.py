@@ -1,107 +1,147 @@
 #!/usr/bin/env python3
-"""Generate unit chip PNGs and optional enemy variants."""
+"""Generate Daisenryaku-style unit chip PNGs for infantry, tank, and artillery."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "assets" / "units"
+SIZE = 64
 
-OUTLINE = (20, 20, 30, 255)
-WHITE = (245, 245, 245, 255)
-
-
-def new_canvas(size: tuple[int, int] = (48, 48)) -> Image.Image:
-    return Image.new("RGBA", size, (0, 0, 0, 0))
+OUTLINE = (24, 20, 36, 255)
+SHADOW = (0, 0, 0, 60)
 
 
-def px(draw: ImageDraw.ImageDraw, x: int, y: int, color: tuple[int, int, int, int]) -> None:
-    draw.rectangle((x, y, x, y), fill=color)
+def new_canvas() -> Image.Image:
+    return Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 
 
-def block(draw: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int, color) -> None:
-    draw.rectangle((x, y, x + w - 1, y + h - 1), fill=color)
+def put(img: Image.Image, x: int, y: int, color: tuple[int, int, int, int]) -> None:
+    if 0 <= x < SIZE and 0 <= y < SIZE:
+        img.putpixel((x, y), color)
 
 
-def outline_rect(draw: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int, color=OUTLINE) -> None:
-    draw.rectangle((x, y, x + w - 1, y + h - 1), outline=color)
+def rect(img: Image.Image, x: int, y: int, w: int, h: int, color) -> None:
+    for py in range(y, y + h):
+        for px in range(x, x + w):
+            put(img, px, py, color)
+
+
+def outline_rect(img: Image.Image, x: int, y: int, w: int, h: int, color=OUTLINE) -> None:
+    for px in range(x, x + w):
+        put(img, px, y, color)
+        put(img, px, y + h - 1, color)
+    for py in range(y, y + h):
+        put(img, x, py, color)
+        put(img, x + w - 1, py, color)
+
+
+def line(img: Image.Image, x0: int, y0: int, x1: int, y1: int, color) -> None:
+    dx = abs(x1 - x0)
+    dy = -abs(y1 - y0)
+    sx = 1 if x0 < x1 else -1
+    sy = 1 if y0 < y1 else -1
+    err = dx + dy
+    while True:
+        put(img, x0, y0, color)
+        if x0 == x1 and y0 == y1:
+            break
+        e2 = 2 * err
+        if e2 >= dy:
+            err += dy
+            x0 += sx
+        if e2 <= dx:
+            err += dx
+            y0 += sy
 
 
 def make_infantry() -> Image.Image:
     img = new_canvas()
-    draw = ImageDraw.Draw(img)
-    body = (228, 196, 48, 255)
-    shadow = (156, 108, 28, 255)
-    gear = (92, 64, 36, 255)
+    gold = (236, 196, 56, 255)
+    gold_hi = (255, 232, 120, 255)
+    gold_lo = (176, 132, 24, 255)
+    pack = (92, 64, 36, 255)
+    skin = (224, 184, 140, 255)
 
-    for ox in (8, 22):
-        block(draw, ox + 2, 14, 8, 10, body)
-        block(draw, ox + 3, 15, 6, 3, (248, 220, 96, 255))
-        block(draw, ox + 3, 21, 6, 2, shadow)
-        block(draw, ox + 3, 10, 6, 5, body)
-        block(draw, ox + 4, 11, 4, 2, (248, 220, 96, 255))
-        px(draw, ox + 4, 12, OUTLINE)
-        px(draw, ox + 6, 12, OUTLINE)
-        block(draw, ox + 1, 16, 2, 6, gear)
-        outline_rect(draw, ox + 2, 14, 8, 10)
-        outline_rect(draw, ox + 3, 10, 6, 5)
+    def soldier(ox: int) -> None:
+        rect(img, ox + 4, 24, 10, 12, gold)
+        rect(img, ox + 5, 25, 8, 4, gold_hi)
+        rect(img, ox + 5, 31, 8, 3, gold_lo)
+        rect(img, ox + 5, 16, 8, 8, gold)
+        rect(img, ox + 6, 17, 6, 3, gold_hi)
+        rect(img, ox + 6, 14, 6, 3, gold)
+        rect(img, ox + 7, 18, 4, 2, skin)
+        put(img, ox + 7, 15, OUTLINE)
+        put(img, ox + 9, 15, OUTLINE)
+        rect(img, ox + 2, 26, 3, 8, pack)
+        rect(img, ox + 13, 27, 2, 6, pack)
+        outline_rect(img, ox + 4, 24, 10, 12)
+        outline_rect(img, ox + 5, 14, 8, 10)
 
+    soldier(10)
+    soldier(30)
     return img
 
 
 def make_tank() -> Image.Image:
     img = new_canvas()
-    draw = ImageDraw.Draw(img)
-    hull = (72, 108, 220, 255)
-    hull_hi = (132, 164, 248, 255)
-    hull_lo = (44, 64, 156, 255)
+    blue = (64, 108, 220, 255)
+    blue_hi = (132, 172, 255, 255)
+    blue_lo = (36, 56, 140, 255)
     tread = (28, 28, 36, 255)
+    barrel = (180, 188, 204, 255)
 
-    block(draw, 8, 24, 30, 10, hull)
-    block(draw, 9, 25, 28, 3, hull_hi)
-    block(draw, 9, 30, 28, 3, hull_lo)
-    for x in range(10, 34, 4):
-        block(draw, x, 33, 3, 2, tread)
+    rect(img, 8, 36, 44, 14, blue)
+    rect(img, 9, 37, 42, 4, blue_hi)
+    rect(img, 9, 44, 42, 4, blue_lo)
+    for tx in range(10, 48, 5):
+        rect(img, tx, 48, 3, 3, tread)
 
-    block(draw, 16, 16, 14, 9, hull)
-    block(draw, 17, 17, 12, 3, hull_hi)
-    block(draw, 6, 18, 12, 3, hull_hi)
-    block(draw, 4, 18, 3, 3, OUTLINE)
+    rect(img, 22, 22, 20, 16, blue)
+    rect(img, 23, 23, 18, 5, blue_hi)
+    rect(img, 6, 26, 18, 4, blue_hi)
+    for i in range(16):
+        put(img, 5 - i, 27, barrel if i % 2 == 0 else blue_hi)
+    put(img, 4, 27, OUTLINE)
+    put(img, 3, 27, OUTLINE)
 
-    outline_rect(draw, 8, 24, 30, 10)
-    outline_rect(draw, 16, 16, 14, 9)
+    outline_rect(img, 8, 36, 44, 14)
+    outline_rect(img, 22, 22, 20, 16)
     return img
 
 
 def make_artillery() -> Image.Image:
     img = new_canvas()
-    draw = ImageDraw.Draw(img)
-    body = (56, 168, 72, 255)
-    body_hi = (104, 220, 120, 255)
-    body_lo = (32, 108, 48, 255)
-    tread = (20, 20, 28, 255)
+    green = (48, 156, 72, 255)
+    green_hi = (104, 220, 120, 255)
+    green_lo = (24, 96, 44, 255)
+    tread = (24, 24, 32, 255)
+    barrel = (196, 204, 180, 255)
 
-    block(draw, 14, 24, 20, 10, body)
-    block(draw, 15, 25, 18, 3, body_hi)
-    block(draw, 15, 30, 18, 3, body_lo)
-    for x in range(16, 32, 4):
-        block(draw, x, 33, 2, 2, tread)
+    rect(img, 14, 38, 34, 12, green)
+    rect(img, 15, 39, 32, 4, green_hi)
+    rect(img, 15, 44, 32, 4, green_lo)
+    for tx in range(16, 44, 5):
+        rect(img, tx, 48, 3, 3, tread)
 
-    block(draw, 18, 18, 12, 8, body)
-    for i in range(10):
-        px(draw, 30 + i, 14 - i // 2, body_hi if i % 2 == 0 else body)
-    px(draw, 39, 11, OUTLINE)
-    px(draw, 40, 11, OUTLINE)
+    rect(img, 24, 28, 16, 12, green)
+    rect(img, 25, 29, 14, 4, green_hi)
+    for i in range(18):
+        x = 38 + i
+        y = 24 - i // 2
+        put(img, x, y, barrel if i % 2 == 0 else green_hi)
+    put(img, 56, 15, OUTLINE)
+    put(img, 57, 15, OUTLINE)
 
-    outline_rect(draw, 14, 24, 20, 10)
-    outline_rect(draw, 18, 18, 12, 8)
+    outline_rect(img, 14, 38, 34, 12)
+    outline_rect(img, 24, 28, 16, 12)
     return img
 
 
-def shift_to_enemy_palette(img: Image.Image) -> Image.Image:
+def shift_to_enemy(img: Image.Image) -> Image.Image:
     out = img.copy()
     pixels = out.load()
     for y in range(out.height):
@@ -109,16 +149,18 @@ def shift_to_enemy_palette(img: Image.Image) -> Image.Image:
             r, g, b, a = pixels[x, y]
             if a == 0:
                 continue
-            if r > 200 and g > 180 and b < 120:
-                pixels[x, y] = (210, 72, 56, a)
-            elif b > r and b > 80:
-                pixels[x, y] = (196, 56, 56, a)
-            elif g > r and g > 80:
+            if r == OUTLINE[0] and g == OUTLINE[1] and b == OUTLINE[2]:
+                pixels[x, y] = (48, 16, 16, a)
+            elif g > r + 30:
                 pixels[x, y] = (176, 48, 48, a)
-            elif r == OUTLINE[0] and g == OUTLINE[1] and b == OUTLINE[2]:
-                pixels[x, y] = (36, 16, 16, a)
+            elif b > r + 20:
+                pixels[x, y] = (196, 56, 56, a)
+            elif r > 180 and g > 140:
+                pixels[x, y] = (220, 96, 72, a)
+            elif r > 150:
+                pixels[x, y] = (min(255, r + 40), max(0, g - 60), max(0, b - 60), a)
             else:
-                pixels[x, y] = (min(255, r + 60), max(0, g - 80), max(0, b - 80), a)
+                pixels[x, y] = (200, 64, 56, a)
     return out
 
 
@@ -133,8 +175,8 @@ def save_all() -> None:
         base = maker()
         base.save(OUT_DIR / f"{name}.png")
         base.save(OUT_DIR / f"{name}_player.png")
-        shift_to_enemy_palette(base).save(OUT_DIR / f"{name}_enemy.png")
-        print(f"wrote {name}.png, {name}_player.png, {name}_enemy.png")
+        shift_to_enemy(base).save(OUT_DIR / f"{name}_enemy.png")
+        print(f"wrote {name} chips ({SIZE}x{SIZE})")
 
 
 if __name__ == "__main__":
