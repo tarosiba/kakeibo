@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://assets/ui/menu_background.png" id="2_menu_bg"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.1, 0.12, 0.16, 0.88)
+bg_color = Color(0.08, 0.1, 0.14, 0.72)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -43,7 +43,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.02, 0.04, 0.1, 0.25)
+color = Color(0.02, 0.04, 0.1, 0.18)
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1

@@ -1,5 +1,7 @@
 extends Control
 
+const MENU_BG_PATH: String = "res://assets/ui/menu_background.png"
+
 @onready var slot_buttons: VBoxContainer = %SlotButtons
 @onready var map_option: OptionButton = %MapOption
 @onready var difficulty_option: OptionButton = %DifficultyOption
@@ -7,11 +9,67 @@ extends Control
 
 
 func _ready() -> void:
+	_setup_menu_background()
 	SaveGame.migrate_legacy_save()
 	_build_slot_buttons()
 	_build_map_options()
 	_build_difficulty_options()
 	_update_difficulty_description()
+
+
+func _setup_menu_background() -> void:
+	var bg: TextureRect = get_node_or_null("MenuBackground") as TextureRect
+	if bg == null:
+		bg = TextureRect.new()
+		bg.name = "MenuBackground"
+		add_child(bg)
+		move_child(bg, 0)
+
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.offset_left = 0.0
+	bg.offset_top = 0.0
+	bg.offset_right = 0.0
+	bg.offset_bottom = 0.0
+	bg.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	bg.grow_vertical = Control.GROW_DIRECTION_BOTH
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+
+	var texture: Texture2D = load(MENU_BG_PATH) as Texture2D
+	if texture == null:
+		push_error("メニュー背景画像を読み込めません: %s" % MENU_BG_PATH)
+		bg.visible = false
+	else:
+		bg.texture = texture
+		bg.visible = true
+		print("Menu background loaded: %s (%dx%d)" % [
+			MENU_BG_PATH,
+			texture.get_width(),
+			texture.get_height(),
+		])
+
+	var overlay: ColorRect = get_node_or_null("DimOverlay") as ColorRect
+	if overlay == null:
+		overlay = ColorRect.new()
+		overlay.name = "DimOverlay"
+		add_child(overlay)
+		move_child(overlay, 1)
+
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.offset_left = 0.0
+	overlay.offset_top = 0.0
+	overlay.offset_right = 0.0
+	overlay.offset_bottom = 0.0
+	overlay.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	overlay.grow_vertical = Control.GROW_DIRECTION_BOTH
+	overlay.color = Color(0.02, 0.04, 0.1, 0.18)
+	overlay.visible = texture != null
+
+	var panel: Node = get_node_or_null("Panel")
+	if panel != null:
+		move_child(panel, get_child_count() - 1)
 
 
 func _build_slot_buttons() -> void:
