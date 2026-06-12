@@ -34,6 +34,7 @@ var match_timer := HALF_DURATION
 var current_half := 1
 var is_running := true
 var match_finished := false
+var kickoff_position := Vector2(-12.0, 0.0)
 
 
 func _ready() -> void:
@@ -49,7 +50,7 @@ func _ready() -> void:
 	ball.z_index = 2
 
 	_spawn_teams()
-	ball.reset_to(Vector2.ZERO)
+	_reset_kickoff()
 
 	if human_player:
 		camera.global_position = human_player.global_position
@@ -69,7 +70,8 @@ func _create_team(team_id: int, formation: Array, color: Color, human_on_team: b
 		player.team_id = team_id
 		player.team_color = color
 		player.global_position = formation[index]
-		player.is_human_controlled = human_on_team and index == 1
+		player.is_human_controlled = human_on_team and index == 3
+		player.set_meta("formation_anchor", formation[index])
 		player.add_to_group("players")
 		player.ball_kicked.connect(_on_ball_kicked)
 		players_root.add_child(player)
@@ -108,11 +110,24 @@ func _update_match_timer(delta: float) -> void:
 
 
 func _reset_half() -> void:
-	ball.reset_to(Vector2.ZERO)
+	_reset_kickoff()
 	for player in get_tree().get_nodes_in_group("players"):
 		if player.has_method("recover_for_new_half"):
 			player.recover_for_new_half()
+	_reset_player_positions()
 	hint_label.text = "2ND HALF"
+
+
+func _reset_kickoff() -> void:
+	ball.reset_to(kickoff_position)
+
+
+func _reset_player_positions() -> void:
+	for player in get_tree().get_nodes_in_group("players"):
+		var anchor: Variant = player.get_meta("formation_anchor")
+		if anchor is Vector2:
+			player.global_position = anchor
+			player.velocity = Vector2.ZERO
 
 
 func _update_camera() -> void:
@@ -121,38 +136,115 @@ func _update_camera() -> void:
 
 
 func _update_cpu_players() -> void:
+	var chasers := _pick_ball_chasers()
+
 	for player in get_tree().get_nodes_in_group("players"):
 		if player.is_human_controlled or player.is_knocked_down:
 			continue
 
-		var direction: Vector2 = player.global_position.direction_to(ball.global_position)
+		var anchor: Vector2 = player.get_meta("formation_anchor")
+		var target := anchor
+		var speed_scale := 0.55
+
+		if player == chasers.get(player.team_id):
+			target = ball.global_position
+			speed_scale = 0.82
+		else:
+			target = anchor + Vector2(0.0, clampf(ball.global_position.y - anchor.y, -18.0, 18.0) * 0.35)
+
+		target += _get_separation_offset(player)
+
+		var direction: Vector2 = player.global_position.direction_to(target)
 		if direction.length_squared() < 0.01:
+			player.velocity = Vector2.ZERO
+			player.visual.set_pose(player.visual.Pose.IDLE)
 			continue
 
 		player.facing_direction = direction
-		player.velocity = direction * player.MOVE_SPEED * 0.72
+		player.velocity = direction * player.MOVE_SPEED * speed_scale
 		player.visual.set_pose(player.visual.Pose.RUN)
 		player.visual.set_facing(direction)
 
 
-func _handle_dribbling() -> void:
+func _pick_ball_chasers() -> Dictionary:
+	var chasers: Dictionary = {}
+	for team_id in [0, 1]:
+		var closest_player: CharacterBody2D = null
+		var closest_distance := INF
+		for player in get_tree().get_nodes_in_group("players"):
+			if player.team_id != team_id or player.is_knocked_down:
+				continue
+			var distance: float = player.global_position.distance_to(ball.global_position)
+			if distance < closest_distance:
+				closest_distance = distance
+				closest_player = player
+		chasers[team_id] = closest_player
+	return chasers
+
+
+func _get_separation_offset(player: CharacterBody2D) -> Vector2:
+	var offset := Vector2.ZERO
+	for other in get_tree().get_nodes_in_group("players"):
+		if other == player or other.is_knocked_down:
+			continue
+		var delta: Vector2 = player.global_position - other.global_position
+		var distance: float = delta.length()
+		if distance > 0.01 and distance < 14.0:
+			offset += delta.normalized() * (14.0 - distance) * 0.35
+	return offset
+
+
+func _get_ball_controller() -> CharacterBody2D:
+	var closest_player: CharacterBody2D = null
+	var closest_distance := INF
+
 	for player in get_tree().get_nodes_in_group("players"):
 		if player.is_knocked_down:
 			continue
-		if player.global_position.distance_to(ball.global_position) > player.BALL_CONTROL_RADIUS:
+		var distance: float = player.global_position.distance_to(ball.global_position)
+		if distance > player.BALL_CONTROL_RADIUS:
 			continue
-		ball.absorb_dribble(player.get_dribble_velocity())
-		ball.last_touch_by_team = player.team_id
+		if player.is_human_controlled:
+			return player
+		if distance < closest_distance:
+			closest_player = player
+			closest_distance = distance
+
+	return closest_player
+
+
+func _handle_dribbling() -> void:
+	var controller := _get_ball_controller()
+	if controller == null:
+		return
+	ball.absorb_dribble(controller.get_dribble_velocity())
+	ball.last_touch_by_team = controller.team_id
 
 
 func _on_ball_kicked(kicked_ball: Node2D, direction: Vector2, power: float) -> void:
 	if kicked_ball != ball:
 		return
 
-	for candidate in get_tree().get_nodes_in_group("players"):
-		if candidate.global_position.distance_to(ball.global_position) <= candidate.BALL_CONTROL_RADIUS:
-			ball.kick(direction, power, candidate.team_id)
-			return
+	var kicker := _get_kick_candidate()
+	if kicker == null:
+		return
+	ball.kick(direction, power, kicker.team_id)
+
+
+func _get_kick_candidate() -> CharacterBody2D:
+	for player in get_tree().get_nodes_in_group("players"):
+		if player.is_knocked_down or not player.is_human_controlled:
+			continue
+		if player.global_position.distance_to(ball.global_position) <= player.BALL_CONTROL_RADIUS:
+			return player
+
+	for player in get_tree().get_nodes_in_group("players"):
+		if player.is_knocked_down:
+			continue
+		if player.global_position.distance_to(ball.global_position) <= player.BALL_CONTROL_RADIUS:
+			return player
+
+	return null
 
 
 func _clamp_ball_to_field() -> void:
@@ -187,14 +279,8 @@ func _check_goals() -> void:
 
 
 func _restart_after_goal() -> void:
-	ball.reset_to(Vector2.ZERO)
-	for index in HOME_FORMATION.size():
-		var home_player := players_root.get_node("Home_%d" % index)
-		home_player.global_position = HOME_FORMATION[index]
-		home_player.velocity = Vector2.ZERO
-		var away_player := players_root.get_node("Away_%d" % index)
-		away_player.global_position = AWAY_FORMATION[index]
-		away_player.velocity = Vector2.ZERO
+	_reset_kickoff()
+	_reset_player_positions()
 	_update_hud()
 
 

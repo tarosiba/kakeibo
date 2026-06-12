@@ -37,6 +37,7 @@ func kick(direction: Vector2, power: float, team_id: int) -> void:
 	var kick_dir := direction.normalized()
 	if kick_dir.length_squared() < 0.01:
 		kick_dir = Vector2.RIGHT
+	global_position += kick_dir * 3.0
 	velocity = kick_dir * power
 	last_touch_by_team = team_id
 
