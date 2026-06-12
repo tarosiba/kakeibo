@@ -3,6 +3,7 @@ extends CharacterBody2D
 const FRICTION := 7.5
 const MAX_SPEED := 190.0
 const BOUNCE := 0.72
+const BALL_TEXTURE: Texture2D = preload("res://assets/sprites/ball.png")
 
 var last_touch_by_team: int = -1
 
@@ -11,6 +12,13 @@ func _ready() -> void:
 	add_to_group("ball")
 	collision_layer = 2
 	collision_mask = 5
+
+	var sprite := Sprite2D.new()
+	sprite.name = "Sprite"
+	sprite.texture = BALL_TEXTURE
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.centered = true
+	add_child(sprite)
 
 
 func _physics_process(delta: float) -> void:
@@ -41,10 +49,3 @@ func absorb_dribble(dribble_velocity: Vector2) -> void:
 func reset_to(position: Vector2) -> void:
 	global_position = position
 	velocity = Vector2.ZERO
-
-
-func _draw() -> void:
-	draw_circle(Vector2.ZERO, 3.5, Color.WHITE)
-	draw_circle(Vector2(-1.0, -1.0), 1.0, Color("#111827"))
-	draw_circle(Vector2(1.5, 0.5), 1.0, Color("#111827"))
-	draw_circle(Vector2(-0.5, 1.5), 1.0, Color("#111827"))

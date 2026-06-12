@@ -5,7 +5,7 @@ A retro top-down soccer game built with **Godot 4**, inspired by classic Nintend
 ## Features (current prototype)
 
 - 320×240 pixel-perfect viewport with integer scaling
-- Modular player visuals with animated head, arms, and legs
+- Modular player visuals with **pixel art sprites** (head, torso, arms, legs) and limb animation
 - 5 vs 5 match with simple CPU opponents
 - Pass (Z), shoot/tackle (X), super shot (Z+X while super shots remain)
 - Knockdown tackles, two halves, score and timer HUD
@@ -26,18 +26,27 @@ A retro top-down soccer game built with **Godot 4**, inspired by classic Nintend
    - **Z + X** — super shot (5 per half)
    - **Esc** — return to title
 
-## Project structure
+## Sprites
+
+Pixel art lives in `assets/sprites/`. To regenerate placeholder art:
+
+```bash
+python3 tools/generate_sprites.py
+godot --headless --path . --import
+```
 
 ```
+assets/sprites/  Pixel art sprites (player parts, ball)
 scenes/          Main scenes (title, match, player, ball, field)
 scripts/         GDScript gameplay logic
 scripts/autoload/ Global game manager
+tools/           Sprite generation script
 ```
 
 ## Roadmap
 
 - [ ] Team select and tournament mode
 - [ ] Ice / dirt field surfaces
-- [ ] Pixel art sprites replacing placeholder limbs
+- [x] Pixel art sprites replacing placeholder limbs
 - [ ] Improved AI and teammate commands
 - [ ] Audio (chiptune BGM / SFX)

@@ -24,7 +24,7 @@ var super_shots_left := 5
 
 
 func _ready() -> void:
-	visual.team_color = team_color
+	visual.set_team_color(team_color)
 	collision_layer = 1
 	collision_mask = 5
 
