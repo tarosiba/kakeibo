@@ -39,9 +39,21 @@ var match_finished := false
 func _ready() -> void:
 	home_team = GameManager.get_home_team()
 	away_team = GameManager.get_away_team()
-	add_child(FIELD_SCENE.instantiate())
+
+	var field := FIELD_SCENE.instantiate()
+	field.z_index = -10
+	add_child(field)
+	move_child(field, 0)
+
+	players_root.z_index = 1
+	ball.z_index = 2
+
 	_spawn_teams()
 	ball.reset_to(Vector2.ZERO)
+
+	if human_player:
+		camera.global_position = human_player.global_position
+	camera.make_current()
 	_update_hud()
 
 

@@ -4,6 +4,9 @@ const FIELD_SIZE := Vector2(300.0, 180.0)
 const GOAL_HALF_HEIGHT := 24.0
 
 
+func _ready() -> void:
+	z_index = -10
+
 func _draw() -> void:
 	var origin := Vector2(-FIELD_SIZE.x * 0.5, -FIELD_SIZE.y * 0.5)
 	draw_rect(Rect2(origin, FIELD_SIZE), Color("#2f855a"))

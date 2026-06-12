@@ -9,6 +9,7 @@ var last_touch_by_team: int = -1
 
 
 func _ready() -> void:
+	z_index = 2
 	add_to_group("ball")
 	collision_layer = 2
 	collision_mask = 5
