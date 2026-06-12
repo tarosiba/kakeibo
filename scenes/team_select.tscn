@@ -1,0 +1,152 @@
+[gd_scene load_steps=4 format=3 uid="uid://cteamselect001"]
+
+[ext_resource type="Script" path="res://scripts/team_select.gd" id="1_team_select"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.08, 0.16, 0.12, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.278431, 0.333333, 0.411765, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_root"]
+bg_color = Color(0.05, 0.12, 0.08, 1)
+
+[node name="TeamSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_team_select")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.12, 0.08, 1)
+
+[node name="MainLayout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="MainLayout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "SELECT TEAMS"
+horizontal_alignment = 1
+
+[node name="TopRow" type="HBoxContainer" parent="MainLayout"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="HomePanel" type="PanelContainer" parent="MainLayout/TopRow"]
+custom_minimum_size = Vector2(140, 92)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="HomeVBox" type="VBoxContainer" parent="MainLayout/TopRow/HomePanel"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="HomeTagLabel" type="Label" parent="MainLayout/TopRow/HomePanel/HomeVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "HOME"
+horizontal_alignment = 1
+
+[node name="HomePreview" type="Node2D" parent="MainLayout/TopRow/HomePanel/HomeVBox"]
+position = Vector2(62, 28)
+scale = Vector2(1, 1)
+
+[node name="HomeSwatch" type="ColorRect" parent="MainLayout/TopRow/HomePanel/HomeVBox"]
+custom_minimum_size = Vector2(24, 8)
+layout_mode = 2
+size_flags_horizontal = 4
+color = Color(0.145098, 0.388235, 0.921569, 1)
+
+[node name="HomeNameLabel" type="Label" parent="MainLayout/TopRow/HomePanel/HomeVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "SUNRISE"
+horizontal_alignment = 1
+
+[node name="HomeSuperLabel" type="Label" parent="MainLayout/TopRow/HomePanel/HomeVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "FLAME SHOT"
+horizontal_alignment = 1
+
+[node name="AwayPanel" type="PanelContainer" parent="MainLayout/TopRow"]
+custom_minimum_size = Vector2(140, 92)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="AwayVBox" type="VBoxContainer" parent="MainLayout/TopRow/AwayPanel"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="AwayTagLabel" type="Label" parent="MainLayout/TopRow/AwayPanel/AwayVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "AWAY"
+horizontal_alignment = 1
+
+[node name="AwayPreview" type="Node2D" parent="MainLayout/TopRow/AwayPanel/AwayVBox"]
+position = Vector2(62, 28)
+
+[node name="AwaySwatch" type="ColorRect" parent="MainLayout/TopRow/AwayPanel/AwayVBox"]
+custom_minimum_size = Vector2(24, 8)
+layout_mode = 2
+size_flags_horizontal = 4
+color = Color(0.862745, 0.14902, 0.14902, 1)
+
+[node name="AwayNameLabel" type="Label" parent="MainLayout/TopRow/AwayPanel/AwayVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "THUNDER"
+horizontal_alignment = 1
+
+[node name="AwaySuperLabel" type="Label" parent="MainLayout/TopRow/AwayPanel/AwayVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "BLAST SHOT"
+horizontal_alignment = 1
+
+[node name="ListTitleLabel" type="Label" parent="MainLayout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "TEAMS  (H=home  A=away  >=cursor)"
+horizontal_alignment = 1
+
+[node name="TeamList" type="VBoxContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 1
+
+[node name="StatusLabel" type="Label" parent="MainLayout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "HOME SUN  vs  THU AWAY"
+horizontal_alignment = 1
+
+[node name="HintLabel" type="Label" parent="MainLayout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 7
+text = "ARROWS: choose  LEFT/RIGHT: side  SPACE: kick off  ESC: back"
+horizontal_alignment = 1

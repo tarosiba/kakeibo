@@ -1,0 +1,60 @@
+{
+  "teams": [
+    {
+      "id": "sunrise",
+      "name": "SUNRISE",
+      "abbr": "SUN",
+      "color": "#2563eb",
+      "super_shot": "FLAME SHOT"
+    },
+    {
+      "id": "thunder",
+      "name": "THUNDER",
+      "abbr": "THU",
+      "color": "#dc2626",
+      "super_shot": "BLAST SHOT"
+    },
+    {
+      "id": "samba",
+      "name": "SAMBA",
+      "abbr": "SAM",
+      "color": "#16a34a",
+      "super_shot": "BOOMERANG"
+    },
+    {
+      "id": "alpine",
+      "name": "ALPINE",
+      "abbr": "ALP",
+      "color": "#374151",
+      "super_shot": "CANNON"
+    },
+    {
+      "id": "azure",
+      "name": "AZURE",
+      "abbr": "AZU",
+      "color": "#1d4ed8",
+      "super_shot": "AQUA SPIRAL"
+    },
+    {
+      "id": "desert",
+      "name": "DESERT",
+      "abbr": "DES",
+      "color": "#ca8a04",
+      "super_shot": "SAND STORM"
+    },
+    {
+      "id": "aurora",
+      "name": "AURORA",
+      "abbr": "AUR",
+      "color": "#0891b2",
+      "super_shot": "FREEZE LINE"
+    },
+    {
+      "id": "crimson",
+      "name": "CRIMSON",
+      "abbr": "CRI",
+      "color": "#be123c",
+      "super_shot": "METEOR"
+    }
+  ]
+}

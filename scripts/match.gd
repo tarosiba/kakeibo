@@ -28,12 +28,16 @@ const AWAY_FORMATION := [
 @onready var hint_label: Label = $UI/HintLabel
 
 var human_player: CharacterBody2D
+var home_team: Dictionary
+var away_team: Dictionary
 var match_timer := HALF_DURATION
 var current_half := 1
 var is_running := true
 
 
 func _ready() -> void:
+	home_team = GameManager.get_home_team()
+	away_team = GameManager.get_away_team()
 	add_child(FIELD_SCENE.instantiate())
 	_spawn_teams()
 	ball.reset_to(Vector2.ZERO)
@@ -41,8 +45,8 @@ func _ready() -> void:
 
 
 func _spawn_teams() -> void:
-	_create_team(0, HOME_FORMATION, Color("#2563eb"), true)
-	_create_team(1, AWAY_FORMATION, Color("#dc2626"), false)
+	_create_team(0, HOME_FORMATION, GameManager.get_team_color(home_team), true)
+	_create_team(1, AWAY_FORMATION, GameManager.get_team_color(away_team), false)
 
 
 func _create_team(team_id: int, formation: Array, color: Color, human_on_team: bool) -> void:
@@ -178,7 +182,9 @@ func _restart_after_goal() -> void:
 
 
 func _update_hud() -> void:
-	score_label.text = "HOME %d - %d AWAY" % [GameManager.home_score, GameManager.away_score]
+	var home_abbr: String = home_team.get("abbr", "HOM")
+	var away_abbr: String = away_team.get("abbr", "AWY")
+	score_label.text = "%s %d - %d %s" % [home_abbr, GameManager.home_score, GameManager.away_score, away_abbr]
 	timer_label.text = "H%d  %02d:%02d" % [current_half, int(match_timer) / 60, int(match_timer) % 60]
 
 

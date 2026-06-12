@@ -16,4 +16,4 @@ func _process(_delta: float) -> void:
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("start"):
-		GameManager.go_to_match()
+		GameManager.go_to_team_select()
