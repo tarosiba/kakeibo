@@ -6,7 +6,7 @@ A retro top-down soccer game built with **Godot 4**, inspired by classic Nintend
 
 - 320×240 pixel-perfect viewport with integer scaling
 - Modular player visuals with **pixel art sprites** (head, torso, arms, legs) and limb animation
-- 5 vs 5 match with simple CPU opponents
+- 5 vs 5 match with simple CPU opponents and dedicated goalkeepers
 - Team select screen with 8 fictional teams, color previews, and super shot names
 - Pass (Z), shoot/tackle (X), super shot (Z+X while super shots remain)
 - Knockdown tackles, two halves, score and timer HUD
@@ -29,6 +29,13 @@ A retro top-down soccer game built with **Godot 4**, inspired by classic Nintend
    - **Z + X** — super shot (5 per half)
    - **Esc** — return to title (during match)
 6. After full time, press **Space** for results. In tournament mode, win 3 rounds to become champion (draws count as a loss)
+
+## Goalkeepers
+
+- Each team has a dedicated **GK** (`Home_0` / `Away_0`) in a yellow jersey and green gloves
+- GK stays in the penalty box, tracks the ball vertically, and attempts saves on shots
+- GK clears the ball when it reaches them in the box
+- Field players are controlled by you; GK is always CPU
 
 ## Sprites
 

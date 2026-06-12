@@ -33,3 +33,18 @@ static func get_bounds() -> Rect2:
 
 static func get_goal_half_height() -> float:
 	return GOAL_HALF_HEIGHT
+
+
+static func get_goal_line_x(team_id: int) -> float:
+	if team_id == 0:
+		return -FIELD_SIZE.x * 0.5
+	return FIELD_SIZE.x * 0.5
+
+
+static func get_penalty_box(team_id: int) -> Rect2:
+	var goal_x := get_goal_line_x(team_id)
+	var box_height := GOAL_HALF_HEIGHT * 2.0 + 16.0
+	var box_width := 42.0
+	if team_id == 0:
+		return Rect2(goal_x, -box_height * 0.5, box_width, box_height)
+	return Rect2(goal_x - box_width, -box_height * 0.5, box_width, box_height)

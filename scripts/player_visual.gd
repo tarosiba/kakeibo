@@ -1,6 +1,9 @@
 extends Node2D
 
-enum Pose { IDLE, RUN, KICK, TACKLE, DOWN }
+enum Pose { IDLE, RUN, KICK, TACKLE, DOWN, SAVE, GK_IDLE }
+
+const GK_JERSEY_COLOR := Color("#facc15")
+const GK_GLOVE_COLOR := Color("#22c55e")
 
 const SPRITE_PATHS := {
 	"head": "res://assets/sprites/player/head.png",
@@ -13,6 +16,8 @@ const SPRITE_PATHS := {
 }
 
 @export var team_color: Color = Color("#2563eb")
+
+var is_goalkeeper := false
 
 var facing: float = 1.0
 var pose: Pose = Pose.IDLE
@@ -102,11 +107,18 @@ func _make_arm_pivot(name: String, pivot_pos: Vector2) -> Node2D:
 
 
 func _apply_team_colors() -> void:
-	_torso.modulate = team_color
+	var jersey_color := GK_JERSEY_COLOR if is_goalkeeper else team_color
+	_torso.modulate = jersey_color
 	_tint_children(_left_leg, team_color, ["ShortsSprite"])
 	_tint_children(_right_leg, team_color, ["ShortsSprite"])
-	_tint_children(_left_arm, team_color, ["SleeveSprite"])
-	_tint_children(_right_arm, team_color, ["SleeveSprite"])
+	if is_goalkeeper:
+		_tint_children(_left_arm, GK_GLOVE_COLOR, ["HandSprite"])
+		_tint_children(_right_arm, GK_GLOVE_COLOR, ["HandSprite"])
+		_tint_children(_left_arm, jersey_color, ["SleeveSprite"])
+		_tint_children(_right_arm, jersey_color, ["SleeveSprite"])
+	else:
+		_tint_children(_left_arm, team_color, ["SleeveSprite"])
+		_tint_children(_right_arm, team_color, ["SleeveSprite"])
 
 
 func _tint_children(node: Node2D, color: Color, sprite_names: Array) -> void:
@@ -117,6 +129,12 @@ func _tint_children(node: Node2D, color: Color, sprite_names: Array) -> void:
 
 func set_team_color(color: Color) -> void:
 	team_color = color
+	if _torso:
+		_apply_team_colors()
+
+
+func set_goalkeeper(value: bool) -> void:
+	is_goalkeeper = value
 	if _torso:
 		_apply_team_colors()
 
@@ -140,6 +158,20 @@ func trigger_kick() -> void:
 		return
 	pose = Pose.KICK
 	kick_progress = 0.0
+
+
+func trigger_save() -> void:
+	if not is_goalkeeper:
+		return
+	pose = Pose.SAVE
+	kick_progress = 0.0
+
+
+func set_gk_idle() -> void:
+	if not is_goalkeeper:
+		set_pose(Pose.IDLE)
+		return
+	pose = Pose.GK_IDLE
 
 
 func set_knocked_down() -> void:
@@ -169,6 +201,11 @@ func _process(delta: float) -> void:
 			if kick_progress >= 1.0:
 				pose = Pose.IDLE
 				kick_progress = 0.0
+		Pose.SAVE:
+			kick_progress += delta * 10.0
+			if kick_progress >= 1.0:
+				pose = Pose.GK_IDLE
+				kick_progress = 0.0
 
 	_apply_pose()
 
@@ -196,6 +233,14 @@ func _apply_pose() -> void:
 			arm_swing = 0.2
 			body_tilt = 0.35
 			head_offset = Vector2(1.5, 1.0)
+		Pose.GK_IDLE:
+			arm_swing = 0.55
+			body_tilt = 0.0
+		Pose.SAVE:
+			leg_swing = 0.35
+			arm_swing = 1.1
+			body_tilt = 0.18 * facing
+			head_offset = Vector2(0.0, 1.0)
 		Pose.DOWN:
 			_apply_down_pose()
 			return

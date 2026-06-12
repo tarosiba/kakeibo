@@ -11,6 +11,7 @@ const BALL_CONTROL_RADIUS := 9.0
 
 @export var team_id: int = 0
 @export var is_human_controlled: bool = false
+@export var is_goalkeeper: bool = false
 @export var team_color: Color = Color("#2563eb")
 
 @onready var visual: Node2D = $Visual
@@ -26,6 +27,8 @@ var super_shots_left := 5
 func _ready() -> void:
 	z_index = 1
 	visual.set_team_color(team_color)
+	if visual.has_method("set_goalkeeper"):
+		visual.set_goalkeeper(is_goalkeeper)
 	collision_layer = 1
 	collision_mask = 5
 
@@ -50,7 +53,7 @@ func _physics_process(delta: float) -> void:
 		velocity = input_dir.normalized() * MOVE_SPEED
 		if visual.has_method("set_pose"):
 			visual.set_pose(visual.Pose.RUN)
-	else:
+	elif is_human_controlled:
 		velocity = velocity.lerp(Vector2.ZERO, 10.0 * delta)
 		if visual.has_method("set_pose") and visual.pose != visual.Pose.KICK:
 			visual.set_pose(visual.Pose.IDLE)
@@ -142,6 +145,8 @@ func _apply_tackle_hit() -> void:
 
 
 func receive_tackle(from_direction: Vector2) -> void:
+	if is_goalkeeper:
+		return
 	if is_knocked_down:
 		return
 	is_knocked_down = true

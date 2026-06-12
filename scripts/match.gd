@@ -69,8 +69,9 @@ func _create_team(team_id: int, formation: Array, color: Color, human_on_team: b
 		player.name = "%s_%d" % ["Home" if team_id == 0 else "Away", index]
 		player.team_id = team_id
 		player.team_color = color
+		player.is_goalkeeper = index == 0
 		player.global_position = formation[index]
-		player.is_human_controlled = human_on_team and index == 3
+		player.is_human_controlled = human_on_team and index == 3 and not player.is_goalkeeper
 		player.set_meta("formation_anchor", formation[index])
 		player.add_to_group("players")
 		player.ball_kicked.connect(_on_ball_kicked)
@@ -87,6 +88,7 @@ func _physics_process(delta: float) -> void:
 	_update_match_timer(delta)
 	_update_camera()
 	_update_cpu_players()
+	_try_goalkeeper_saves()
 	_handle_dribbling()
 	_clamp_ball_to_field()
 	_check_goals()
@@ -142,6 +144,10 @@ func _update_cpu_players() -> void:
 		if player.is_human_controlled or player.is_knocked_down:
 			continue
 
+		if player.is_goalkeeper:
+			_update_goalkeeper(player)
+			continue
+
 		var anchor: Vector2 = player.get_meta("formation_anchor")
 		var target := anchor
 		var speed_scale := 0.55
@@ -166,13 +172,87 @@ func _update_cpu_players() -> void:
 		player.visual.set_facing(direction)
 
 
+func _update_goalkeeper(gk: CharacterBody2D) -> void:
+	var anchor: Vector2 = gk.get_meta("formation_anchor")
+	var box: Rect2 = FieldScript.get_penalty_box(gk.team_id)
+	var goal_h := FieldScript.get_goal_half_height()
+	var target_y := clampf(ball.global_position.y, -goal_h + 3.0, goal_h - 3.0)
+	var target_x := anchor.x
+
+	if gk.team_id == 0:
+		target_x = clampf(anchor.x + clampf(ball.global_position.x - anchor.x, -8.0, 18.0), box.position.x + 6.0, box.end.x - 6.0)
+		gk.facing_direction = Vector2.RIGHT
+	else:
+		target_x = clampf(anchor.x + clampf(ball.global_position.x - anchor.x, -18.0, 8.0), box.position.x + 6.0, box.end.x - 6.0)
+		gk.facing_direction = Vector2.LEFT
+
+	var target := Vector2(target_x, target_y)
+
+	if gk.global_position.distance_to(ball.global_position) <= gk.BALL_CONTROL_RADIUS and box.has_point(ball.global_position):
+		var clear_dir := Vector2.RIGHT if gk.team_id == 0 else Vector2.LEFT
+		ball.kick(clear_dir, 95.0, gk.team_id)
+		gk.visual.trigger_kick()
+		return
+
+	var direction: Vector2 = gk.global_position.direction_to(target)
+	if direction.length_squared() < 0.01:
+		gk.velocity = Vector2.ZERO
+		gk.visual.set_gk_idle()
+		gk.visual.set_facing(gk.facing_direction)
+		return
+
+	gk.velocity = direction * gk.MOVE_SPEED * 0.68
+	if absf(direction.x) > 0.05:
+		gk.facing_direction = direction
+	gk.visual.set_pose(gk.visual.Pose.RUN)
+	gk.visual.set_facing(gk.facing_direction)
+
+
+func _try_goalkeeper_saves() -> void:
+	if ball.velocity.length() < 35.0:
+		return
+
+	for gk in get_tree().get_nodes_in_group("players"):
+		if not gk.is_goalkeeper or gk.is_knocked_down:
+			continue
+		if not _ball_threatens_goal(gk.team_id):
+			continue
+		if gk.global_position.distance_to(ball.global_position) > 13.0:
+			continue
+		if absf(gk.global_position.y - ball.global_position.y) > goal_save_max_offset():
+			continue
+
+		var block_dir := Vector2.RIGHT if gk.team_id == 0 else Vector2.LEFT
+		ball.velocity = block_dir * 55.0 + Vector2(0.0, (gk.global_position.y - ball.global_position.y) * -1.5)
+		ball.global_position += block_dir * 2.5
+		gk.visual.trigger_save()
+
+
+func goal_save_max_offset() -> float:
+	return FieldScript.get_goal_half_height() - 2.0
+
+
+func _ball_threatens_goal(defending_team_id: int) -> bool:
+	var goal_x := FieldScript.get_goal_line_x(defending_team_id)
+	var goal_h := FieldScript.get_goal_half_height()
+	var ball_pos := ball.global_position
+	var ball_vel := ball.velocity
+
+	if absf(ball_pos.y) > goal_h + 6.0:
+		return false
+
+	if defending_team_id == 0:
+		return ball_vel.x < -25.0 and ball_pos.x < -35.0
+	return ball_vel.x > 25.0 and ball_pos.x > 35.0
+
+
 func _pick_ball_chasers() -> Dictionary:
 	var chasers: Dictionary = {}
 	for team_id in [0, 1]:
 		var closest_player: CharacterBody2D = null
 		var closest_distance := INF
 		for player in get_tree().get_nodes_in_group("players"):
-			if player.team_id != team_id or player.is_knocked_down:
+			if player.team_id != team_id or player.is_knocked_down or player.is_goalkeeper:
 				continue
 			var distance: float = player.global_position.distance_to(ball.global_position)
 			if distance < closest_distance:
@@ -201,6 +281,8 @@ func _get_ball_controller() -> CharacterBody2D:
 	for player in get_tree().get_nodes_in_group("players"):
 		if player.is_knocked_down:
 			continue
+		if player.is_goalkeeper and not _goalkeeper_can_control_ball(player):
+			continue
 		var distance: float = player.global_position.distance_to(ball.global_position)
 		if distance > player.BALL_CONTROL_RADIUS:
 			continue
@@ -211,6 +293,11 @@ func _get_ball_controller() -> CharacterBody2D:
 			closest_distance = distance
 
 	return closest_player
+
+
+func _goalkeeper_can_control_ball(gk: CharacterBody2D) -> bool:
+	var box: Rect2 = FieldScript.get_penalty_box(gk.team_id)
+	return box.has_point(ball.global_position) or box.has_point(gk.global_position)
 
 
 func _handle_dribbling() -> void:
@@ -239,7 +326,7 @@ func _get_kick_candidate() -> CharacterBody2D:
 			return player
 
 	for player in get_tree().get_nodes_in_group("players"):
-		if player.is_knocked_down:
+		if player.is_knocked_down or player.is_goalkeeper:
 			continue
 		if player.global_position.distance_to(ball.global_position) <= player.BALL_CONTROL_RADIUS:
 			return player
