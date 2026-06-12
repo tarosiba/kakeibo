@@ -203,8 +203,8 @@ func _update_hud() -> void:
 
 func _input(event: InputEvent) -> void:
 	if match_finished and event.is_action_pressed("start"):
-		GameManager.go_to_match_result()
 		get_viewport().set_input_as_handled()
+		GameManager.go_to_match_result()
 		return
 
 	if event.is_action_pressed("ui_cancel") and not match_finished:

@@ -66,16 +66,17 @@ func _refresh_tournament_result() -> void:
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		GameManager.go_to_title()
 		get_viewport().set_input_as_handled()
+		GameManager.go_to_title()
 		return
 
 	if not event.is_action_pressed("start"):
 		return
 
+	get_viewport().set_input_as_handled()
+
 	if not GameManager.is_tournament_mode():
 		GameManager.go_to_team_select()
-		get_viewport().set_input_as_handled()
 		return
 
 	var outcome := GameManager.get_match_outcome_for_player()
@@ -88,5 +89,3 @@ func _input(event: InputEvent) -> void:
 			GameManager.go_to_match()
 	else:
 		GameManager.go_to_title()
-
-	get_viewport().set_input_as_handled()

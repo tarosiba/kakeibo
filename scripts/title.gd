@@ -33,12 +33,12 @@ func _input(event: InputEvent) -> void:
 		_refresh_menu()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("start"):
+		get_viewport().set_input_as_handled()
 		if menu_index == MODE_TOURNAMENT:
 			GameManager.set_game_mode(GameManager.GameMode.TOURNAMENT)
 		else:
 			GameManager.set_game_mode(GameManager.GameMode.VS)
 		GameManager.go_to_team_select()
-		get_viewport().set_input_as_handled()
 
 
 func _refresh_menu() -> void:

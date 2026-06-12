@@ -56,11 +56,11 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
 		GameManager.go_to_title()
-		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("start"):
-		_start_match()
 		get_viewport().set_input_as_handled()
+		_start_match()
 	elif event.is_action_pressed("move_left") or event.is_action_pressed("ui_left"):
 		if not GameManager.is_tournament_mode():
 			active_side = SIDE_HOME
