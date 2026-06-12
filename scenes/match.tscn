@@ -1,0 +1,44 @@
+[gd_scene load_steps=4 format=3 uid="uid://cmatch001"]
+
+[ext_resource type="Script" path="res://scripts/match.gd" id="1_match"]
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="2_ball"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_ui"]
+font_size = 8
+
+[node name="Match" type="Node2D"]
+script = ExtResource("1_match")
+
+[node name="Players" type="Node2D" parent="."]
+
+[node name="Ball" parent="." instance=ExtResource("2_ball")]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="ScoreLabel" type="Label" parent="UI"]
+offset_left = 8.0
+offset_top = 6.0
+offset_right = 160.0
+offset_bottom = 18.0
+text = "HOME 0 - 0 AWAY"
+label_settings = SubResource("LabelSettings_ui")
+
+[node name="TimerLabel" type="Label" parent="UI"]
+offset_left = 240.0
+offset_top = 6.0
+offset_right = 312.0
+offset_bottom = 18.0
+text = "H1  01:30"
+horizontal_alignment = 2
+label_settings = SubResource("LabelSettings_ui")
+
+[node name="HintLabel" type="Label" parent="UI"]
+offset_left = 8.0
+offset_top = 220.0
+offset_right = 312.0
+offset_bottom = 232.0
+text = "Z: pass  X: shoot/tackle  Z+X: super  ESC: title"
+label_settings = SubResource("LabelSettings_ui")
