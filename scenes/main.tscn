@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://fairwaychroniclemain"]
+[gd_scene load_steps=9 format=3 uid="uid://fairwaychroniclemain"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/main_view.gd" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/elevation_graph.gd" id="4"]
 [ext_resource type="Script" path="res://scripts/control_panel.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/status_bar.gd" id="6"]
+[ext_resource type="Script" path="res://scripts/help_overlay.gd" id="7"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title"]
 bg_color = Color(0.102, 0.247, 0.478, 1)
@@ -80,7 +81,13 @@ script = ExtResource("5")
 [node name="StatusBar" type="Control" parent="Layout"]
 layout_mode = 0
 offset_left = 8.0
-offset_top = 536.0
+offset_top = 528.0
 offset_right = 792.0
 offset_bottom = 592.0
 script = ExtResource("6")
+
+[node name="HelpOverlay" type="Control" parent="Layout"]
+layout_mode = 0
+offset_right = 800.0
+offset_bottom = 600.0
+script = ExtResource("7")
