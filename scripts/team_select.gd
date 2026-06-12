@@ -6,6 +6,7 @@ const SIDE_AWAY := 1
 const LIST_VISIBLE_ROWS := 6
 const PlayerVisualScript := preload("res://scripts/player_visual.gd")
 
+@onready var screen_title_label: Label = $MainLayout/ScreenTitleLabel
 @onready var home_name_label: Label = $MainLayout/TopRow/HomePanel/HomeVBox/HomeNameLabel
 @onready var away_name_label: Label = $MainLayout/TopRow/AwayPanel/AwayVBox/AwayNameLabel
 @onready var home_super_label: Label = $MainLayout/TopRow/HomePanel/HomeVBox/HomeSuperLabel
@@ -14,6 +15,8 @@ const PlayerVisualScript := preload("res://scripts/player_visual.gd")
 @onready var away_swatch: ColorRect = $MainLayout/TopRow/AwayPanel/AwayVBox/AwaySwatch
 @onready var home_panel: PanelContainer = $MainLayout/TopRow/HomePanel
 @onready var away_panel: PanelContainer = $MainLayout/TopRow/AwayPanel
+@onready var home_tag_label: Label = $MainLayout/TopRow/HomePanel/HomeVBox/HomeTagLabel
+@onready var away_tag_label: Label = $MainLayout/TopRow/AwayPanel/AwayVBox/AwayTagLabel
 @onready var home_preview: Node2D = $MainLayout/TopRow/HomePanel/HomeVBox/HomePreview
 @onready var away_preview: Node2D = $MainLayout/TopRow/AwayPanel/AwayVBox/AwayPreview
 @onready var team_list: VBoxContainer = $MainLayout/TeamList
@@ -31,6 +34,11 @@ func _ready() -> void:
 
 	_attach_preview(home_preview)
 	_attach_preview(away_preview)
+
+	if GameManager.is_tournament_mode():
+		active_side = SIDE_HOME
+		GameManager.set_player_team_index(GameManager.home_team_index)
+
 	_refresh_ui()
 
 
@@ -51,15 +59,17 @@ func _input(event: InputEvent) -> void:
 		GameManager.go_to_title()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("start"):
-		GameManager.go_to_match()
+		_start_match()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("move_left") or event.is_action_pressed("ui_left"):
-		active_side = SIDE_HOME
-		_refresh_ui()
+		if not GameManager.is_tournament_mode():
+			active_side = SIDE_HOME
+			_refresh_ui()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("move_right") or event.is_action_pressed("ui_right"):
-		active_side = SIDE_AWAY
-		_refresh_ui()
+		if not GameManager.is_tournament_mode():
+			active_side = SIDE_AWAY
+			_refresh_ui()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("move_up") or event.is_action_pressed("ui_up"):
 		_change_selection(-1)
@@ -69,18 +79,31 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _change_selection(delta: int) -> void:
-	if active_side == SIDE_HOME:
-		GameManager.set_home_team_index(GameManager.home_team_index + delta)
+func _start_match() -> void:
+	if GameManager.is_tournament_mode():
+		GameManager.start_tournament(GameManager.home_team_index)
 	else:
-		GameManager.set_away_team_index(GameManager.away_team_index + delta)
+		GameManager.go_to_match()
+		return
+
+	GameManager.go_to_match()
+
+
+func _change_selection(delta: int) -> void:
+	if GameManager.is_tournament_mode():
+		GameManager.set_player_team_index(GameManager.home_team_index + delta)
+	else:
+		if active_side == SIDE_HOME:
+			GameManager.set_home_team_index(GameManager.home_team_index + delta)
+		else:
+			GameManager.set_away_team_index(GameManager.away_team_index + delta)
 
 	_sync_list_offset()
 	_refresh_ui()
 
 
 func _sync_list_offset() -> void:
-	var focus_index := GameManager.home_team_index if active_side == SIDE_HOME else GameManager.away_team_index
+	var focus_index := _focused_index()
 	if focus_index < list_offset:
 		list_offset = focus_index
 	elif focus_index >= list_offset + LIST_VISIBLE_ROWS:
@@ -91,6 +114,20 @@ func _refresh_ui() -> void:
 	var home_team := GameManager.get_home_team()
 	var away_team := GameManager.get_away_team()
 
+	if GameManager.is_tournament_mode():
+		away_team = GameManager.get_team(GameManager.get_tournament_opponent_index(0))
+		screen_title_label.text = "TOURNAMENT"
+		home_tag_label.text = "YOUR TEAM"
+		away_tag_label.text = GameManager.get_current_round_name()
+		hint_label.text = "ARROWS: team  SPACE: start  ESC: back"
+		status_label.text = "ROUTE: %s" % GameManager.get_tournament_route_text()
+	else:
+		screen_title_label.text = "VS MATCH"
+		home_tag_label.text = "HOME"
+		away_tag_label.text = "AWAY"
+		hint_label.text = "ARROWS: choose  LEFT/RIGHT: side  SPACE: kick off  ESC: back"
+		status_label.text = "HOME %s  vs  %s AWAY" % [home_team.get("abbr", ""), away_team.get("abbr", "")]
+
 	home_name_label.text = home_team.get("name", "---")
 	away_name_label.text = away_team.get("name", "---")
 	home_super_label.text = home_team.get("super_shot", "")
@@ -98,14 +135,11 @@ func _refresh_ui() -> void:
 	home_swatch.color = GameManager.get_team_color(home_team)
 	away_swatch.color = GameManager.get_team_color(away_team)
 
-	_update_panel_highlight(home_panel, active_side == SIDE_HOME)
-	_update_panel_highlight(away_panel, active_side == SIDE_AWAY)
+	_update_panel_highlight(home_panel, active_side == SIDE_HOME or GameManager.is_tournament_mode())
+	_update_panel_highlight(away_panel, active_side == SIDE_AWAY and not GameManager.is_tournament_mode())
 	_update_preview(home_preview, home_team)
 	_update_preview(away_preview, away_team)
 	_rebuild_team_list()
-
-	hint_label.text = "ARROWS: choose  LEFT/RIGHT: side  SPACE: kick off  ESC: back"
-	status_label.text = "HOME %s  vs  %s AWAY" % [home_team.get("abbr", ""), away_team.get("abbr", "")]
 
 
 func _update_panel_highlight(panel: PanelContainer, active: bool) -> void:
@@ -148,8 +182,8 @@ func _rebuild_team_list() -> void:
 func _format_list_row(index: int, team: Dictionary) -> String:
 	var markers := ""
 	if index == GameManager.home_team_index:
-		markers += "H"
-	if index == GameManager.away_team_index:
+		markers += "P" if GameManager.is_tournament_mode() else "H"
+	if not GameManager.is_tournament_mode() and index == GameManager.away_team_index:
 		markers += "A"
 	if markers.is_empty():
 		markers = " "
@@ -159,4 +193,6 @@ func _format_list_row(index: int, team: Dictionary) -> String:
 
 
 func _focused_index() -> int:
+	if GameManager.is_tournament_mode():
+		return GameManager.home_team_index
 	return GameManager.home_team_index if active_side == SIDE_HOME else GameManager.away_team_index

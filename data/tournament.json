@@ -1,0 +1,17 @@
+{
+  "draw_means_loss": true,
+  "rounds": [
+    {
+      "name": "ROUND 1",
+      "opponent_id": "samba"
+    },
+    {
+      "name": "SEMI FINAL",
+      "opponent_id": "alpine"
+    },
+    {
+      "name": "FINAL",
+      "opponent_id": "crimson"
+    }
+  ]
+}

@@ -50,6 +50,12 @@ theme_override_font_sizes/font_size = 16
 text = "SELECT TEAMS"
 horizontal_alignment = 1
 
+[node name="ScreenTitleLabel" type="Label" parent="MainLayout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "VS MATCH"
+horizontal_alignment = 1
+
 [node name="TopRow" type="HBoxContainer" parent="MainLayout"]
 layout_mode = 2
 theme_override_constants/separation = 8

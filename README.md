@@ -19,15 +19,16 @@ A retro top-down soccer game built with **Godot 4**, inspired by classic Nintend
 
 1. Open this folder in Godot (`project.godot`)
 2. Press **F5** to run
-3. On the title screen, press **Space** or **Enter**
-4. On team select, choose **HOME** and **AWAY**, then press **Space**
+3. On the title screen, choose **VS MATCH** or **TOURNAMENT**
+4. On team select, choose your team(s), then press **Space**
 5. In match:
    - **Arrow keys / WASD** — move cursor / your player
    - **Left / Right** — switch HOME or AWAY side on team select
    - **Z** — pass
    - **X** — shoot (with ball) / tackle (without ball)
    - **Z + X** — super shot (5 per half)
-   - **Esc** — return to title
+   - **Esc** — return to title (during match)
+6. After full time, press **Space** for results. In tournament mode, win 3 rounds to become champion (draws count as a loss)
 
 ## Sprites
 
@@ -40,8 +41,8 @@ godot --headless --path . --import
 
 ```
 assets/sprites/  Pixel art sprites (player parts, ball)
-data/            Team definitions (teams.json)
-scenes/          Main scenes (title, team select, match, player, ball, field)
+data/            Team and tournament definitions
+scenes/          Main scenes (title, team select, match, match result, ...)
 scripts/         GDScript gameplay logic
 scripts/autoload/ Global game manager
 tools/           Sprite generation script
@@ -50,7 +51,7 @@ tools/           Sprite generation script
 ## Roadmap
 
 - [x] Team select screen
-- [ ] Tournament mode
+- [x] Tournament mode (3-round cup, draw = elimination)
 - [ ] Ice / dirt field surfaces
 - [x] Pixel art sprites replacing placeholder limbs
 - [ ] Improved AI and teammate commands

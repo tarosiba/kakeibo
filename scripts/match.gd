@@ -33,6 +33,7 @@ var away_team: Dictionary
 var match_timer := HALF_DURATION
 var current_half := 1
 var is_running := true
+var match_finished := false
 
 
 func _ready() -> void:
@@ -86,7 +87,11 @@ func _update_match_timer(delta: float) -> void:
 			_reset_half()
 		else:
 			is_running = false
-			hint_label.text = "FULL TIME  ESC: title"
+			match_finished = true
+			if GameManager.is_tournament_mode():
+				hint_label.text = "FULL TIME  SPACE: results"
+			else:
+				hint_label.text = "FULL TIME  SPACE: results  ESC: title"
 	_update_hud()
 
 
@@ -185,9 +190,22 @@ func _update_hud() -> void:
 	var home_abbr: String = home_team.get("abbr", "HOM")
 	var away_abbr: String = away_team.get("abbr", "AWY")
 	score_label.text = "%s %d - %d %s" % [home_abbr, GameManager.home_score, GameManager.away_score, away_abbr]
-	timer_label.text = "H%d  %02d:%02d" % [current_half, int(match_timer) / 60, int(match_timer) % 60]
+	if not GameManager.is_tournament_mode():
+		timer_label.text = "H%d  %02d:%02d" % [current_half, int(match_timer) / 60, int(match_timer) % 60]
+	elif is_running:
+		timer_label.text = "%s  H%d %02d:%02d" % [
+			GameManager.get_current_round_name(),
+			current_half,
+			int(match_timer) / 60,
+			int(match_timer) % 60,
+		]
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
+	if match_finished and event.is_action_pressed("start"):
+		GameManager.go_to_match_result()
+		get_viewport().set_input_as_handled()
+		return
+
+	if event.is_action_pressed("ui_cancel") and not match_finished:
 		GameManager.go_to_title()

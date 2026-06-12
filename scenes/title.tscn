@@ -44,8 +44,25 @@ theme_override_font_sizes/font_size = 8
 text = "Nintendo World Cup inspired prototype"
 horizontal_alignment = 1
 
+[node name="MenuVBox" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="VsLabel" type="Label" parent="CenterContainer/VBoxContainer/MenuVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "> VS MATCH"
+horizontal_alignment = 1
+
+[node name="TournamentLabel" type="Label" parent="CenterContainer/VBoxContainer/MenuVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "  TOURNAMENT"
+horizontal_alignment = 1
+
 [node name="PromptLabel" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
-text = "PRESS START"
+theme_override_font_sizes/font_size = 8
+text = "UP/DOWN: mode  SPACE: select"
 horizontal_alignment = 1
