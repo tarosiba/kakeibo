@@ -8,7 +8,7 @@ A retro top-down soccer game built with **Godot 4**, inspired by classic Nintend
 - Modular player visuals with **pixel art sprites** (head, torso, arms, legs) and limb animation
 - 5 vs 5 match with simple CPU opponents and dedicated goalkeepers
 - Team select screen with 8 fictional teams, color previews, and super shot names
-- Pass (Z), shoot/tackle (X), super shot (Z+X while super shots remain)
+- Pass-and-move team AI: CPU carriers pass forward, teammates make supporting runs, defenders mark space
 - Knockdown tackles, two halves, score and timer HUD
 
 ## Requirements
@@ -24,7 +24,7 @@ A retro top-down soccer game built with **Godot 4**, inspired by classic Nintend
 5. In match:
    - **Arrow keys / WASD** — move cursor / your player
    - **Left / Right** — switch HOME or AWAY side on team select
-   - **Z** — pass
+   - **Z** — pass (auto-aims to nearby teammate in your facing direction)
    - **X** — shoot (with ball) / tackle (without ball)
    - **Z + X** — super shot (5 per half)
    - **Esc** — return to title (during match)

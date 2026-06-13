@@ -22,6 +22,7 @@ var is_knocked_down := false
 var knockdown_timer := 0.0
 var tackle_cooldown := 0.0
 var super_shots_left := 5
+var cpu_pass_cooldown := 0.0
 
 
 func _ready() -> void:
@@ -46,6 +47,8 @@ func _physics_process(delta: float) -> void:
 
 	if tackle_cooldown > 0.0:
 		tackle_cooldown -= delta
+	if cpu_pass_cooldown > 0.0:
+		cpu_pass_cooldown -= delta
 
 	var input_dir := _get_input_direction()
 	if input_dir.length_squared() > 0.01:
@@ -87,9 +90,45 @@ func _try_pass() -> void:
 	var ball := _find_nearby_ball()
 	if ball == null:
 		return
+	var pass_dir := _get_pass_direction()
 	if visual.has_method("trigger_kick"):
 		visual.trigger_kick()
-	ball_kicked.emit(ball, facing_direction, PASS_POWER)
+	ball_kicked.emit(ball, pass_dir, PASS_POWER)
+
+
+func _get_pass_direction() -> Vector2:
+	var best_teammate: CharacterBody2D = null
+	var best_score := -INF
+	for player in get_tree().get_nodes_in_group("players"):
+		if player == self or player.team_id != team_id or player.is_goalkeeper:
+			continue
+		var to_teammate: Vector2 = global_position.direction_to(player.global_position)
+		var alignment := to_teammate.dot(facing_direction.normalized())
+		if alignment < -0.35:
+			continue
+		var distance := global_position.distance_to(player.global_position)
+		if distance < 14.0 or distance > 90.0:
+			continue
+		var score := alignment * 40.0 - distance * 0.12
+		if score > best_score:
+			best_score = score
+			best_teammate = player
+	if best_teammate != null:
+		return global_position.direction_to(best_teammate.global_position)
+	return facing_direction
+
+
+func cpu_try_pass(direction: Vector2) -> bool:
+	if cpu_pass_cooldown > 0.0:
+		return false
+	var ball := _find_nearby_ball()
+	if ball == null:
+		return false
+	if visual.has_method("trigger_kick"):
+		visual.trigger_kick()
+	ball_kicked.emit(ball, direction, PASS_POWER)
+	cpu_pass_cooldown = 0.75
+	return true
 
 
 func _try_tackle_or_shoot(_super: bool) -> void:

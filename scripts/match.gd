@@ -36,6 +36,11 @@ var is_running := true
 var match_finished := false
 var kickoff_position := Vector2(-12.0, 0.0)
 
+const ATTACK_PUSH := 30.0
+const SUPPORT_SPREAD := 24.0
+const PRESS_RADIUS := 13.0
+const LOOSE_BALL_CHASE_RANGE := 95.0
+
 
 func _ready() -> void:
 	home_team = GameManager.get_home_team()
@@ -138,7 +143,8 @@ func _update_camera() -> void:
 
 
 func _update_cpu_players() -> void:
-	var chasers := _pick_ball_chasers()
+	var controller := _get_ball_controller()
+	var possession_team: int = _get_possession_team(controller)
 
 	for player in get_tree().get_nodes_in_group("players"):
 		if player.is_human_controlled or player.is_knocked_down:
@@ -148,28 +154,208 @@ func _update_cpu_players() -> void:
 			_update_goalkeeper(player)
 			continue
 
-		var anchor: Vector2 = player.get_meta("formation_anchor")
-		var target := anchor
-		var speed_scale := 0.55
-
-		if player == chasers.get(player.team_id):
-			target = ball.global_position
-			speed_scale = 0.82
+		if controller == player:
+			_update_cpu_carrier(player)
+		elif possession_team == player.team_id:
+			_update_cpu_support(player, controller)
+		elif possession_team >= 0:
+			_update_cpu_defender(player, controller)
 		else:
-			target = anchor + Vector2(0.0, clampf(ball.global_position.y - anchor.y, -18.0, 18.0) * 0.35)
+			_update_cpu_loose(player)
 
-		target += _get_separation_offset(player)
 
-		var direction: Vector2 = player.global_position.direction_to(target)
-		if direction.length_squared() < 0.01:
-			player.velocity = Vector2.ZERO
-			player.visual.set_pose(player.visual.Pose.IDLE)
+func _get_possession_team(controller: CharacterBody2D) -> int:
+	if controller != null:
+		return controller.team_id
+	if ball.last_touch_by_team >= 0 and ball.velocity.length() < 55.0:
+		return ball.last_touch_by_team
+	return -1
+
+
+func _attack_direction(team_id: int) -> float:
+	return 1.0 if team_id == 0 else -1.0
+
+
+func _enemy_goal_x(team_id: int) -> float:
+	return FieldScript.get_goal_line_x(1 if team_id == 0 else 0)
+
+
+func _update_cpu_carrier(carrier: CharacterBody2D) -> void:
+	var attack_dir := _attack_direction(carrier.team_id)
+	var goal_x := _enemy_goal_x(carrier.team_id)
+	var move_dir := Vector2(attack_dir, clampf(ball.global_position.y - carrier.global_position.y, -1.0, 1.0) * 0.35).normalized()
+
+	if _is_pressured(carrier):
+		var pass_target := _find_best_pass_target(carrier)
+		if pass_target != null:
+			var pass_dir := carrier.global_position.direction_to(pass_target.global_position)
+			if carrier.cpu_try_pass(pass_dir):
+				return
+	elif _should_pass_forward(carrier):
+		var pass_target := _find_best_pass_target(carrier)
+		if pass_target != null:
+			var pass_dir := carrier.global_position.direction_to(pass_target.global_position)
+			if carrier.cpu_try_pass(pass_dir):
+				return
+
+	if absf(goal_x - carrier.global_position.x) < 38.0 and absf(carrier.global_position.y) < FieldScript.get_goal_half_height() + 6.0:
+		var shoot_dir := Vector2(attack_dir, (0.0 - carrier.global_position.y) * 0.08).normalized()
+		ball.kick(shoot_dir, carrier.KICK_POWER, carrier.team_id)
+		carrier.visual.trigger_kick()
+		carrier.cpu_pass_cooldown = 0.6
+		return
+
+	_move_cpu_player(carrier, carrier.global_position + move_dir * 16.0, 0.62)
+
+
+func _update_cpu_support(supporter: CharacterBody2D, controller: CharacterBody2D) -> void:
+	var anchor: Vector2 = supporter.get_meta("formation_anchor")
+	var attack_dir := _attack_direction(supporter.team_id)
+	var ball_pos := ball.global_position if controller else anchor
+	var lane_offset := anchor.y - ball_pos.y
+
+	var target := Vector2(
+		ball_pos.x + attack_dir * ATTACK_PUSH,
+		ball_pos.y + clampf(lane_offset, -SUPPORT_SPREAD, SUPPORT_SPREAD)
+	)
+	target.x = lerpf(anchor.x, target.x, 0.75)
+	target.y = clampf(target.y, -70.0, 70.0)
+
+	if target.distance_to(ball_pos) < 18.0:
+		target += Vector2(0.0, signf(lane_offset + 0.01) * 14.0)
+
+	_move_cpu_player(supporter, target, 0.78)
+
+
+func _update_cpu_defender(defender: CharacterBody2D, controller: CharacterBody2D) -> void:
+	var anchor: Vector2 = defender.get_meta("formation_anchor")
+	var presser := _get_team_presser(defender.team_id)
+
+	if defender == presser and controller != null:
+		var to_ball := defender.global_position.direction_to(ball.global_position)
+		var distance := defender.global_position.distance_to(ball.global_position)
+		var target := ball.global_position
+		if distance < PRESS_RADIUS:
+			var tangent := Vector2(-to_ball.y, to_ball.x)
+			target = ball.global_position + tangent * 10.0
+		_move_cpu_player(defender, target, 0.84)
+		return
+
+	var guard_x := lerpf(anchor.x, ball.global_position.x, 0.45)
+	var guard_y := lerpf(anchor.y, ball.global_position.y, 0.55)
+	var target := Vector2(guard_x, guard_y)
+	_move_cpu_player(defender, target, 0.62)
+
+
+func _update_cpu_loose(player: CharacterBody2D) -> void:
+	var chaser: CharacterBody2D = _pick_ball_chasers().get(player.team_id)
+	if player != chaser:
+		var anchor: Vector2 = player.get_meta("formation_anchor")
+		var target := anchor + Vector2(0.0, clampf(ball.global_position.y - anchor.y, -16.0, 16.0) * 0.4)
+		_move_cpu_player(player, target, 0.5)
+		return
+
+	if player.global_position.distance_to(ball.global_position) > LOOSE_BALL_CHASE_RANGE:
+		var anchor: Vector2 = player.get_meta("formation_anchor")
+		_move_cpu_player(player, anchor, 0.45)
+		return
+
+	_move_cpu_player(player, ball.global_position, 0.8)
+
+
+func _move_cpu_player(player: CharacterBody2D, target: Vector2, speed_scale: float) -> void:
+	target += _get_separation_offset(player)
+	var direction: Vector2 = player.global_position.direction_to(target)
+	if direction.length_squared() < 0.01:
+		player.velocity = Vector2.ZERO
+		player.visual.set_pose(player.visual.Pose.IDLE)
+		return
+
+	player.facing_direction = direction
+	player.velocity = direction * player.MOVE_SPEED * speed_scale
+	player.visual.set_pose(player.visual.Pose.RUN)
+	player.visual.set_facing(direction)
+
+
+func _is_pressured(player: CharacterBody2D) -> bool:
+	for other in get_tree().get_nodes_in_group("players"):
+		if other.team_id == player.team_id or other.is_goalkeeper or other.is_knocked_down:
 			continue
+		if player.global_position.distance_to(other.global_position) < 16.0:
+			return true
+	return false
 
-		player.facing_direction = direction
-		player.velocity = direction * player.MOVE_SPEED * speed_scale
-		player.visual.set_pose(player.visual.Pose.RUN)
-		player.visual.set_facing(direction)
+
+func _should_pass_forward(carrier: CharacterBody2D) -> bool:
+	var target := _find_best_pass_target(carrier)
+	if target == null:
+		return false
+	var attack_dir := _attack_direction(carrier.team_id)
+	return (target.global_position.x - carrier.global_position.x) * attack_dir > 18.0
+
+
+func _find_best_pass_target(carrier: CharacterBody2D) -> CharacterBody2D:
+	var attack_dir := _attack_direction(carrier.team_id)
+	var best_player: CharacterBody2D = null
+	var best_score: float = -INF
+
+	for teammate in get_tree().get_nodes_in_group("players"):
+		if teammate == carrier or teammate.team_id != carrier.team_id or teammate.is_goalkeeper:
+			continue
+		if carrier.global_position.distance_to(teammate.global_position) < 16.0:
+			continue
+		var advance: float = (teammate.global_position.x - carrier.global_position.x) * attack_dir
+		if advance < -8.0:
+			continue
+		if not _is_pass_lane_open(carrier, teammate):
+			continue
+		var openness := _get_teammate_openness(teammate)
+		var score: float = advance * 1.2 + openness * 18.0 - carrier.global_position.distance_to(teammate.global_position) * 0.08
+		if score > best_score:
+			best_score = score
+			best_player = teammate
+
+	return best_player
+
+
+func _is_pass_lane_open(from_player: CharacterBody2D, to_player: CharacterBody2D) -> bool:
+	for enemy in get_tree().get_nodes_in_group("players"):
+		if enemy.team_id == from_player.team_id or enemy.is_goalkeeper or enemy.is_knocked_down:
+			continue
+		if _distance_to_segment(enemy.global_position, from_player.global_position, to_player.global_position) < 9.0:
+			return false
+	return true
+
+
+func _get_teammate_openness(teammate: CharacterBody2D) -> float:
+	var closest_enemy: float = INF
+	for enemy in get_tree().get_nodes_in_group("players"):
+		if enemy.team_id == teammate.team_id or enemy.is_goalkeeper or enemy.is_knocked_down:
+			continue
+		closest_enemy = minf(closest_enemy, teammate.global_position.distance_to(enemy.global_position))
+	return closest_enemy
+
+
+func _distance_to_segment(point: Vector2, seg_a: Vector2, seg_b: Vector2) -> float:
+	var segment := seg_b - seg_a
+	var length_sq := segment.length_squared()
+	if length_sq < 0.01:
+		return point.distance_to(seg_a)
+	var t := clampf((point - seg_a).dot(segment) / length_sq, 0.0, 1.0)
+	return point.distance_to(seg_a + segment * t)
+
+
+func _get_team_presser(team_id: int) -> CharacterBody2D:
+	var closest_player: CharacterBody2D = null
+	var closest_distance := INF
+	for player in get_tree().get_nodes_in_group("players"):
+		if player.team_id != team_id or player.is_goalkeeper or player.is_knocked_down:
+			continue
+		var distance: float = player.global_position.distance_to(ball.global_position)
+		if distance < closest_distance:
+			closest_distance = distance
+			closest_player = player
+	return closest_player
 
 
 func _update_goalkeeper(gk: CharacterBody2D) -> void:
@@ -275,8 +461,7 @@ func _get_separation_offset(player: CharacterBody2D) -> Vector2:
 
 
 func _get_ball_controller() -> CharacterBody2D:
-	var closest_player: CharacterBody2D = null
-	var closest_distance := INF
+	var candidates: Array[CharacterBody2D] = []
 
 	for player in get_tree().get_nodes_in_group("players"):
 		if player.is_knocked_down:
@@ -288,10 +473,23 @@ func _get_ball_controller() -> CharacterBody2D:
 			continue
 		if player.is_human_controlled:
 			return player
+		candidates.append(player)
+
+	if candidates.is_empty():
+		return null
+
+	if ball.last_touch_by_team >= 0:
+		for player in candidates:
+			if player.team_id == ball.last_touch_by_team:
+				return player
+
+	var closest_player: CharacterBody2D = candidates[0]
+	var closest_distance := closest_player.global_position.distance_to(ball.global_position)
+	for player in candidates:
+		var distance: float = player.global_position.distance_to(ball.global_position)
 		if distance < closest_distance:
 			closest_player = player
 			closest_distance = distance
-
 	return closest_player
 
 
