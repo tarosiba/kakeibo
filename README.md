@@ -25,7 +25,7 @@ A retro top-down soccer game built with **Godot 4**, inspired by classic Nintend
    - **Arrow keys / WASD** — move cursor / your player
    - **Left / Right** — switch HOME or AWAY side on team select
    - **Z** — pass (auto-aims to nearby teammate in your facing direction)
-   - **X** — shoot (with ball) / tackle (without ball)
+   - **X** — shoot (with your team's ball) / **tackle** to steal (without ball or vs opponent with ball)
    - **Z + X** — super shot (5 per half)
    - **Esc** — return to title (during match)
 6. After full time, press **Space** for results. In tournament mode, win 3 rounds to become champion (draws count as a loss)

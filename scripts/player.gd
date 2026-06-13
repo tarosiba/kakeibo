@@ -8,6 +8,8 @@ const KICK_POWER := 145.0
 const PASS_POWER := 95.0
 const TACKLE_SPEED := 110.0
 const BALL_CONTROL_RADIUS := 9.0
+const KNOCKDOWN_DURATION := 1.8
+const TACKLE_REACH := 16.0
 
 @export var team_id: int = 0
 @export var is_human_controlled: bool = false
@@ -133,12 +135,20 @@ func cpu_try_pass(direction: Vector2) -> bool:
 
 func _try_tackle_or_shoot(_super: bool) -> void:
 	var ball := _find_nearby_ball()
-	if ball != null:
+	if ball != null and _can_shoot_ball(ball):
 		if visual.has_method("trigger_kick"):
 			visual.trigger_kick()
 		ball_kicked.emit(ball, facing_direction, KICK_POWER)
 		return
 
+	_perform_tackle()
+
+
+func _can_shoot_ball(ball: Node2D) -> bool:
+	return ball.last_touch_by_team == team_id or ball.last_touch_by_team < 0
+
+
+func _perform_tackle() -> void:
 	if tackle_cooldown > 0.0:
 		return
 
@@ -157,7 +167,7 @@ func _try_super_shot() -> void:
 		return
 
 	var ball := _find_nearby_ball()
-	if ball == null:
+	if ball == null or not _can_shoot_ball(ball):
 		return
 
 	super_shots_left -= 1
@@ -174,13 +184,28 @@ func _find_nearby_ball() -> Node2D:
 
 
 func _apply_tackle_hit() -> void:
-	for player in get_tree().get_nodes_in_group("players"):
-		if player == self:
+	for opponent in get_tree().get_nodes_in_group("players"):
+		if opponent == self or opponent.team_id == team_id or opponent.is_goalkeeper:
 			continue
-		if player.global_position.distance_to(global_position) > 14.0:
+		if global_position.distance_to(opponent.global_position) > TACKLE_REACH:
 			continue
-		if player.has_method("receive_tackle"):
-			player.receive_tackle(facing_direction)
+		if _attempt_ball_steal(opponent):
+			return
+		if opponent.has_method("receive_tackle"):
+			opponent.receive_tackle(facing_direction)
+
+
+func _attempt_ball_steal(opponent: CharacterBody2D) -> bool:
+	for ball_node in get_tree().get_nodes_in_group("ball"):
+		if opponent.global_position.distance_to(ball_node.global_position) > opponent.BALL_CONTROL_RADIUS + 2.0:
+			continue
+		if ball_node.last_touch_by_team != opponent.team_id:
+			continue
+		if ball_node.has_method("release_to_tackle"):
+			ball_node.release_to_tackle(self)
+		opponent.receive_tackle(facing_direction)
+		return true
+	return false
 
 
 func receive_tackle(from_direction: Vector2) -> void:
@@ -189,7 +214,7 @@ func receive_tackle(from_direction: Vector2) -> void:
 	if is_knocked_down:
 		return
 	is_knocked_down = true
-	knockdown_timer = 999.0
+	knockdown_timer = KNOCKDOWN_DURATION
 	velocity = from_direction * 40.0
 	if visual.has_method("set_knocked_down"):
 		visual.set_knocked_down()

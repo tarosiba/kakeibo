@@ -502,7 +502,20 @@ func _handle_dribbling() -> void:
 	var controller := _get_ball_controller()
 	if controller == null:
 		return
-	ball.absorb_dribble(controller.get_dribble_velocity())
+
+	var facing: Vector2 = controller.facing_direction.normalized()
+	if facing.length_squared() < 0.01:
+		facing = Vector2.RIGHT if controller.team_id == 0 else Vector2.LEFT
+
+	var dribble_offset: Vector2 = facing * 5.0
+	var target_position: Vector2 = controller.global_position + dribble_offset
+
+	if ball.can_dribble_attach() or ball.velocity.length() < 90.0:
+		ball.attach_dribble(
+			ball.global_position.lerp(target_position, 0.6),
+			controller.velocity
+		)
+
 	ball.last_touch_by_team = controller.team_id
 
 
