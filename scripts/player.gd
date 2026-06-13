@@ -1,6 +1,6 @@
 extends CharacterBody2D
 
-signal ball_kicked(ball: Node2D, direction: Vector2, power: float)
+signal ball_kicked(ball: Node2D, direction: Vector2, power: float, kicker: CharacterBody2D)
 
 const MOVE_SPEED := 68.0
 const DRIBBLE_SPEED := 58.0
@@ -8,6 +8,7 @@ const KICK_POWER := 145.0
 const PASS_POWER := 95.0
 const TACKLE_SPEED := 110.0
 const BALL_CONTROL_RADIUS := 12.0
+const BALL_INTERACT_RADIUS := 18.0
 const KNOCKDOWN_DURATION := 1.8
 const TACKLE_REACH := 16.0
 
@@ -95,29 +96,38 @@ func _try_pass() -> void:
 	var pass_dir := _get_pass_direction()
 	if visual.has_method("trigger_kick"):
 		visual.trigger_kick()
-	ball_kicked.emit(ball, pass_dir, PASS_POWER)
+	ball_kicked.emit(ball, pass_dir, PASS_POWER, self)
 
 
 func _get_pass_direction() -> Vector2:
+	var aim_dir := _get_input_direction()
+	if aim_dir.length_squared() < 0.01:
+		aim_dir = facing_direction
+	aim_dir = aim_dir.normalized()
+
+	var best_teammate := _find_pass_target(aim_dir)
+	if best_teammate != null:
+		return global_position.direction_to(best_teammate.global_position)
+	return aim_dir
+
+
+func _find_pass_target(aim_dir: Vector2) -> CharacterBody2D:
 	var best_teammate: CharacterBody2D = null
 	var best_score := -INF
 	for player in get_tree().get_nodes_in_group("players"):
 		if player == self or player.team_id != team_id or player.is_goalkeeper:
 			continue
-		var to_teammate: Vector2 = global_position.direction_to(player.global_position)
-		var alignment := to_teammate.dot(facing_direction.normalized())
-		if alignment < -0.35:
-			continue
 		var distance := global_position.distance_to(player.global_position)
-		if distance < 14.0 or distance > 90.0:
+		if distance < 10.0 or distance > 105.0:
 			continue
-		var score := alignment * 40.0 - distance * 0.12
+		var to_teammate := global_position.direction_to(player.global_position)
+		var alignment := to_teammate.dot(aim_dir)
+		var range_bonus := 1.0 - absf(distance - 34.0) / 34.0
+		var score := alignment * 55.0 + range_bonus * 22.0
 		if score > best_score:
 			best_score = score
 			best_teammate = player
-	if best_teammate != null:
-		return global_position.direction_to(best_teammate.global_position)
-	return facing_direction
+	return best_teammate
 
 
 func cpu_try_pass(direction: Vector2) -> bool:
@@ -128,7 +138,7 @@ func cpu_try_pass(direction: Vector2) -> bool:
 		return false
 	if visual.has_method("trigger_kick"):
 		visual.trigger_kick()
-	ball_kicked.emit(ball, direction, PASS_POWER)
+	ball_kicked.emit(ball, direction, PASS_POWER, self)
 	cpu_pass_cooldown = 0.75
 	return true
 
@@ -138,7 +148,7 @@ func _try_tackle_or_shoot(_super: bool) -> void:
 	if ball != null and _can_shoot_ball(ball):
 		if visual.has_method("trigger_kick"):
 			visual.trigger_kick()
-		ball_kicked.emit(ball, facing_direction, KICK_POWER)
+		ball_kicked.emit(ball, facing_direction, KICK_POWER, self)
 		return
 
 	_perform_tackle()
@@ -173,13 +183,15 @@ func _try_super_shot() -> void:
 	super_shots_left -= 1
 	if visual.has_method("trigger_kick"):
 		visual.trigger_kick()
-	ball_kicked.emit(ball, facing_direction, KICK_POWER * 1.8)
+	ball_kicked.emit(ball, facing_direction, KICK_POWER * 1.8, self)
 
 
 func _find_nearby_ball() -> Node2D:
-	for ball in get_tree().get_nodes_in_group("ball"):
-		if global_position.distance_to(ball.global_position) <= BALL_CONTROL_RADIUS:
-			return ball
+	for ball_node in get_tree().get_nodes_in_group("ball"):
+		if ball_node.get("dribble_controller") == self:
+			return ball_node
+		if global_position.distance_to(ball_node.global_position) <= BALL_INTERACT_RADIUS:
+			return ball_node
 	return null
 
 

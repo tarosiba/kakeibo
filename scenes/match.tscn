@@ -40,5 +40,5 @@ offset_left = 8.0
 offset_top = 220.0
 offset_right = 312.0
 offset_bottom = 232.0
-text = "Z: pass  X: shoot/tackle  Z+X: super  ESC: title"
+text = "WASD: move/aim pass  Z: pass  X: shoot  ESC: title"
 label_settings = SubResource("LabelSettings_ui")

@@ -43,6 +43,12 @@ const PRESS_RADIUS := 13.0
 const LOOSE_BALL_CHASE_RANGE := 95.0
 const POSSESSION_RADIUS := 16.0
 const POSSESSION_RELEASE_RADIUS := 24.0
+const FORMATION_OFFSETS := {
+	1: Vector2(-28.0, -32.0),
+	2: Vector2(-28.0, 32.0),
+	3: Vector2(0.0, 0.0),
+	4: Vector2(26.0, 0.0),
+}
 
 
 func _ready() -> void:
@@ -213,9 +219,14 @@ func _update_cpu_carrier(carrier: CharacterBody2D) -> void:
 
 
 func _update_cpu_support(supporter: CharacterBody2D, controller: CharacterBody2D) -> void:
+	if controller != null:
+		var target := _get_formation_world_target(supporter, controller)
+		_move_cpu_player(supporter, target, 0.9)
+		return
+
 	var anchor: Vector2 = supporter.get_meta("formation_anchor")
 	var attack_dir := _attack_direction(supporter.team_id)
-	var ball_pos := ball.global_position if controller else anchor
+	var ball_pos := anchor
 	var lane_offset := anchor.y - ball_pos.y
 
 	var target := Vector2(
@@ -306,20 +317,43 @@ func _find_best_pass_target(carrier: CharacterBody2D) -> CharacterBody2D:
 	for teammate in get_tree().get_nodes_in_group("players"):
 		if teammate == carrier or teammate.team_id != carrier.team_id or teammate.is_goalkeeper:
 			continue
-		if carrier.global_position.distance_to(teammate.global_position) < 16.0:
+		if carrier.global_position.distance_to(teammate.global_position) < 12.0:
 			continue
 		var advance: float = (teammate.global_position.x - carrier.global_position.x) * attack_dir
-		if advance < -8.0:
-			continue
 		if not _is_pass_lane_open(carrier, teammate):
 			continue
 		var openness := _get_teammate_openness(teammate)
-		var score: float = advance * 1.2 + openness * 18.0 - carrier.global_position.distance_to(teammate.global_position) * 0.08
+		var distance := carrier.global_position.distance_to(teammate.global_position)
+		var range_bonus := 1.0 - absf(distance - 34.0) / 34.0
+		var score: float = advance * 0.8 + openness * 16.0 + range_bonus * 14.0
 		if score > best_score:
 			best_score = score
 			best_player = teammate
 
 	return best_player
+
+
+func _get_player_field_index(player: CharacterBody2D) -> int:
+	var parts: PackedStringArray = player.name.split("_")
+	if parts.size() < 2:
+		return -1
+	return parts[1].to_int()
+
+
+func _get_formation_world_target(player: CharacterBody2D, carrier: CharacterBody2D) -> Vector2:
+	var field_index := _get_player_field_index(player)
+	var local_offset: Vector2 = FORMATION_OFFSETS.get(field_index, Vector2(-12.0, 0.0))
+	if field_index == _get_player_field_index(carrier):
+		local_offset = Vector2(0.0, 0.0)
+
+	var attack_dir := _attack_direction(carrier.team_id)
+	var world_offset := Vector2(local_offset.x * attack_dir, local_offset.y)
+	var target := carrier.global_position + world_offset
+
+	var bounds: Rect2 = FieldScript.get_bounds()
+	target.x = clampf(target.x, bounds.position.x + 18.0, bounds.end.x - 18.0)
+	target.y = clampf(target.y, bounds.position.y + 14.0, bounds.end.y - 14.0)
+	return target
 
 
 func _is_pass_lane_open(from_player: CharacterBody2D, to_player: CharacterBody2D) -> bool:
@@ -528,27 +562,33 @@ func _handle_dribbling() -> void:
 	ball.stick_to_player(controller, controller.team_id, facing * 6.0)
 
 
-func _on_ball_kicked(kicked_ball: Node2D, direction: Vector2, power: float) -> void:
+func _on_ball_kicked(kicked_ball: Node2D, direction: Vector2, power: float, kicker: CharacterBody2D) -> void:
 	if kicked_ball != ball:
 		return
 
-	var kicker := _get_kick_candidate()
+	if kicker == null:
+		kicker = _get_kick_candidate()
 	if kicker == null:
 		return
+
+	active_controller = null
 	ball.kick(direction, power, kicker.team_id)
 
 
 func _get_kick_candidate() -> CharacterBody2D:
-	for player in get_tree().get_nodes_in_group("players"):
-		if player.is_knocked_down or not player.is_human_controlled:
-			continue
-		if player.global_position.distance_to(ball.global_position) <= player.BALL_CONTROL_RADIUS:
-			return player
+	if ball.dribble_controller != null and is_instance_valid(ball.dribble_controller):
+		return ball.dribble_controller
+
+	if human_player != null and not human_player.is_knocked_down:
+		if human_player.global_position.distance_to(ball.global_position) <= POSSESSION_RADIUS:
+			return human_player
+		if active_controller == human_player:
+			return human_player
 
 	for player in get_tree().get_nodes_in_group("players"):
 		if player.is_knocked_down or player.is_goalkeeper:
 			continue
-		if player.global_position.distance_to(ball.global_position) <= player.BALL_CONTROL_RADIUS:
+		if player.global_position.distance_to(ball.global_position) <= player.BALL_INTERACT_RADIUS:
 			return player
 
 	return null
