@@ -35,14 +35,18 @@ var current_half := 1
 var is_running := true
 var match_finished := false
 var kickoff_position := Vector2(-12.0, 0.0)
+var active_controller: CharacterBody2D = null
 
 const ATTACK_PUSH := 30.0
 const SUPPORT_SPREAD := 24.0
 const PRESS_RADIUS := 13.0
 const LOOSE_BALL_CHASE_RANGE := 95.0
+const POSSESSION_RADIUS := 16.0
+const POSSESSION_RELEASE_RADIUS := 24.0
 
 
 func _ready() -> void:
+	process_physics_priority = 10
 	home_team = GameManager.get_home_team()
 	away_team = GameManager.get_away_team()
 
@@ -461,18 +465,23 @@ func _get_separation_offset(player: CharacterBody2D) -> Vector2:
 
 
 func _get_ball_controller() -> CharacterBody2D:
+	if human_player != null and not human_player.is_knocked_down:
+		var human_distance: float = human_player.global_position.distance_to(ball.global_position)
+		if human_distance <= POSSESSION_RADIUS:
+			return human_player
+		if active_controller == human_player and human_distance <= POSSESSION_RELEASE_RADIUS:
+			return human_player
+
 	var candidates: Array[CharacterBody2D] = []
 
 	for player in get_tree().get_nodes_in_group("players"):
-		if player.is_knocked_down:
+		if player.is_knocked_down or player.is_human_controlled:
 			continue
 		if player.is_goalkeeper and not _goalkeeper_can_control_ball(player):
 			continue
 		var distance: float = player.global_position.distance_to(ball.global_position)
 		if distance > player.BALL_CONTROL_RADIUS:
 			continue
-		if player.is_human_controlled:
-			return player
 		candidates.append(player)
 
 	if candidates.is_empty():
@@ -484,7 +493,7 @@ func _get_ball_controller() -> CharacterBody2D:
 				return player
 
 	var closest_player: CharacterBody2D = candidates[0]
-	var closest_distance := closest_player.global_position.distance_to(ball.global_position)
+	var closest_distance: float = closest_player.global_position.distance_to(ball.global_position)
 	for player in candidates:
 		var distance: float = player.global_position.distance_to(ball.global_position)
 		if distance < closest_distance:
@@ -499,24 +508,24 @@ func _goalkeeper_can_control_ball(gk: CharacterBody2D) -> bool:
 
 
 func _handle_dribbling() -> void:
+	if ball.is_kick_locked():
+		ball.release_from_player()
+		active_controller = null
+		return
+
 	var controller := _get_ball_controller()
 	if controller == null:
+		ball.release_from_player()
+		active_controller = null
 		return
+
+	active_controller = controller
 
 	var facing: Vector2 = controller.facing_direction.normalized()
 	if facing.length_squared() < 0.01:
 		facing = Vector2.RIGHT if controller.team_id == 0 else Vector2.LEFT
 
-	var dribble_offset: Vector2 = facing * 5.0
-	var target_position: Vector2 = controller.global_position + dribble_offset
-
-	if ball.can_dribble_attach() or ball.velocity.length() < 90.0:
-		ball.attach_dribble(
-			ball.global_position.lerp(target_position, 0.6),
-			controller.velocity
-		)
-
-	ball.last_touch_by_team = controller.team_id
+	ball.stick_to_player(controller, controller.team_id, facing * 6.0)
 
 
 func _on_ball_kicked(kicked_ball: Node2D, direction: Vector2, power: float) -> void:
